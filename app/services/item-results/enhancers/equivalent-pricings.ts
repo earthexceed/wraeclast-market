@@ -3,7 +3,7 @@ import Service, {inject as service} from '@ember/service';
 
 // Types
 import TradeLocation from 'better-trading/services/trade-location';
-import PoeNinja, {PoeNinjaCurrenciesRatios} from 'better-trading/services/poe-ninja';
+import PoeNinja, {PoeNinjaCurrenciesRatios, Poe2CurrencyData} from 'better-trading/services/poe-ninja';
 import {ItemResultsEnhancerService, ItemResultsParsedItem} from 'better-trading/types/item-results';
 
 // Constants
@@ -16,6 +16,11 @@ const NORMALIZED_CURRENCY_SLUG = 'divine-orb';
 const NORMALIZED_CURRENCY_EQUIVALENCE_THRESHOLD = 0.5;
 const EQUAL_HTML = '<span class="bt-equivalent-pricings-equals">=</span>';
 
+// PoE2 reference currencies the price is annotated against (poe.ninja powered).
+const POE2_REFERENCE_SLUGS = ['exalted-orb', 'divine-orb', 'chaos-orb', 'orb-of-annulment'];
+// Below this magnitude we keep one decimal of precision, otherwise round to int.
+const POE2_DECIMAL_THRESHOLD = 10;
+
 export default class EquivalentPricings extends Service implements ItemResultsEnhancerService {
   @service('poe-ninja')
   poeNinja: PoeNinja;
@@ -27,15 +32,30 @@ export default class EquivalentPricings extends Service implements ItemResultsEn
 
   chaosRatios: PoeNinjaCurrenciesRatios | null;
 
+  poe2Ratios: Poe2CurrencyData | null;
+
   async prepare() {
     const currentLeague = this.tradeLocation.league;
-    const supportedVersion = this.tradeLocation.version === '1';
-    this.chaosRatios =
-      supportedVersion && currentLeague ? await this.poeNinja.fetchChaosRatiosFor(currentLeague) : null;
+    const version = this.tradeLocation.version;
+
+    this.chaosRatios = null;
+    this.poe2Ratios = null;
+    if (!currentLeague) return;
+
+    if (version === '1') {
+      this.chaosRatios = await this.poeNinja.fetchChaosRatiosFor(currentLeague);
+    } else if (version === '2') {
+      this.poe2Ratios = await this.poeNinja.fetchExaltedRatiosFor(currentLeague);
+    }
   }
 
   // eslint-disable-next-line complexity
   enhance(itemElement: HTMLElement, {price}: ItemResultsParsedItem) {
+    if (this.poe2Ratios) {
+      this.enhancePoe2PricedItem(itemElement, price);
+      return;
+    }
+
     if (!this.chaosRatios) return;
 
     const pricingContainerElement = itemElement.querySelector<HTMLDivElement>('.price');
@@ -92,6 +112,61 @@ export default class EquivalentPricings extends Service implements ItemResultsEn
     // eslint-disable-next-line no-magic-numbers
     const roundNormalizedCurrencyValue = Math.round((currencyValue / normalizedCurrencyValue) * 10) / 10;
     pricingContainerElement.append(this.renderNormalizedCurrencyEquivalence(roundNormalizedCurrencyValue));
+  }
+
+  // eslint-disable-next-line complexity
+  private enhancePoe2PricedItem(itemElement: HTMLElement, price: ItemResultsParsedItem['price']) {
+    if (!this.poe2Ratios) return;
+
+    const pricingContainerElement = itemElement.querySelector<HTMLDivElement>('.price');
+    if (!pricingContainerElement || !price.currencySlug || !price.value) return;
+
+    const pricedCurrency = this.poe2Ratios[price.currencySlug];
+    if (!pricedCurrency) return;
+
+    const itemValueInReference = price.value * pricedCurrency.value;
+
+    POE2_REFERENCE_SLUGS.forEach((referenceSlug) => {
+      const equivalenceElement = this.buildPoe2Equivalence(
+        this.poe2Ratios as Poe2CurrencyData,
+        referenceSlug,
+        price.currencySlug,
+        itemValueInReference
+      );
+      if (equivalenceElement) pricingContainerElement.append(equivalenceElement);
+    });
+  }
+
+  private buildPoe2Equivalence(
+    ratios: Poe2CurrencyData,
+    referenceSlug: string,
+    pricedSlug: string | null,
+    itemValueInReference: number
+  ): HTMLElement | null {
+    if (referenceSlug === pricedSlug) return null;
+
+    const referenceCurrency = ratios[referenceSlug];
+    if (!referenceCurrency || !referenceCurrency.value) return null;
+
+    const equivalentValue = this.roundPoe2Equivalent(itemValueInReference / referenceCurrency.value);
+    if (!equivalentValue) return null;
+
+    return this.renderPoe2Equivalence(equivalentValue, referenceCurrency.icon, referenceSlug);
+  }
+
+  private roundPoe2Equivalent(value: number): number {
+    // eslint-disable-next-line no-magic-numbers
+    return value >= POE2_DECIMAL_THRESHOLD ? Math.round(value) : Math.round(value * 10) / 10;
+  }
+
+  private renderPoe2Equivalence(equivalentValue: number, currencyIconUrl: string, currencyAlt: string): HTMLElement {
+    const element = window.document.createElement('span');
+    element.classList.add('bt-equivalent-pricings');
+    element.classList.add('bt-equivalent-pricings-equivalent');
+
+    element.innerHTML = `<span>${EQUAL_HTML}${equivalentValue}×<img src="${currencyIconUrl}" alt="${currencyAlt}" /></span>`;
+
+    return element;
   }
 
   private renderChaosEquivalence(chaosEquivalentValue: number): HTMLElement {
