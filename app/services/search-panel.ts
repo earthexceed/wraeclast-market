@@ -2,6 +2,9 @@
 import Service from '@ember/service';
 import window from 'ember-window-mock';
 
+// Utilities
+import {escapeRegex} from 'better-trading/utilities/escape-regex';
+
 // Constants
 const NULL_RARITY = 'Any';
 const NULL_CATEGORY = 'Any';
@@ -13,6 +16,20 @@ const CATEGORY_INPUT_SELECTOR =
 const RARITY_INPUT_SELECTOR =
   '.search-advanced-items .filter-group:nth-of-type(1) .filter-property:nth-of-type(2) input';
 const STATS_SELECTOR = '.search-advanced-pane:last-child .filter-group-body .filter:not(.disabled) .filter-title';
+
+// Set an input's value so Vue (trade2's framework) registers the change: assign via
+// the native value setter, then dispatch bubbling `input` and `change` events.
+export const setReactiveInputValue = (input: HTMLInputElement, value: string): void => {
+  const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+  if (nativeSetter) {
+    nativeSetter.call(input, value);
+  } else {
+    input.value = value;
+  }
+
+  input.dispatchEvent(new Event('input', {bubbles: true}));
+  input.dispatchEvent(new Event('change', {bubbles: true}));
+};
 
 export default class SearchPanel extends Service {
   recommendTitle() {

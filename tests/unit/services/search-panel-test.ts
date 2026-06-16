@@ -2,6 +2,7 @@
 import {expect} from 'chai';
 import {setupTest} from 'ember-mocha';
 import {beforeEach, afterEach, describe, it} from 'mocha';
+import window from 'ember-window-mock';
 
 // HTML Samples
 import AnonItem from 'better-trading/tests/html-samples/search-panel/anon-ele-res-max-life';
@@ -9,7 +10,7 @@ import UniqueItem from 'better-trading/tests/html-samples/search-panel/belly-of-
 import RareJewel from 'better-trading/tests/html-samples/search-panel/rare-jewel';
 
 // Types
-import SearchPanel from 'better-trading/services/search-panel';
+import SearchPanel, {setReactiveInputValue} from 'better-trading/services/search-panel';
 
 describe('Unit | Services | Search panel', () => {
   setupTest();
@@ -47,5 +48,19 @@ describe('Unit | Services | Search panel', () => {
 
       expect(service.recommendTitle()).to.equal('');
     });
+  });
+});
+
+describe('Unit | Services | SearchPanel | setReactiveInputValue', () => {
+  it('assigns the value and dispatches bubbling input and change events', () => {
+    const input = window.document.createElement('input');
+    const events: string[] = [];
+    input.addEventListener('input', () => events.push('input'));
+    input.addEventListener('change', () => events.push('change'));
+
+    setReactiveInputValue(input, '42');
+
+    expect(input.value).to.equal('42');
+    expect(events).to.deep.equal(['input', 'change']);
   });
 });
