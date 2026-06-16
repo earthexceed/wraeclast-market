@@ -22,16 +22,26 @@ export interface PoeNinjaCurrenciesRatios {
   [key: string]: number;
 }
 
-// PoE2 currency-exchange overview payload (https://poe.ninja/poe2/api/economy)
+// PoE2 currency-exchange overview payload
+// (https://poe.ninja/poe2/api/economy/exchange/current/overview?type=Currency&league=<name>)
 export interface PoeNinjaPoe2CurrencyLine {
   id: string;
+  // Value of this currency expressed in the payload's `primary` currency. It is
+  // a "worth" measure (higher = more valuable), so the enhancer's ratio of two
+  // primaryValues converts correctly without inversion.
   primaryValue: number;
+  volumePrimaryValue?: number;
+  maxVolumeCurrency?: string;
+  maxVolumeRate?: number;
 }
 
 export interface PoeNinjaPoe2CurrencyItem {
   id: string;
   name: string;
-  icon: string;
+  // Relative path on poe.ninja (e.g. "/gen/image/.../Foo.png"), not an absolute URL.
+  image: string;
+  category?: string;
+  detailsId?: string;
 }
 
 export interface PoeNinjaPoe2Payload {
@@ -59,22 +69,37 @@ export const parsePoe2Ratios = (payload: PoeNinjaPoe2Payload): Poe2CurrencyData 
     const item = itemsById.get(line.id);
     if (!item || !line.primaryValue) return acc;
 
-    acc[slugify(item.name)] = {value: line.primaryValue, icon: item.icon};
+    acc[slugify(item.name)] = {value: line.primaryValue, icon: poe2ImageUrl(item.image)};
 
     return acc;
   }, {});
 };
 
+// poe.ninja returns currency images as paths relative to the poecdn host; make
+// them absolute so they render inside the trade page.
+const poe2ImageUrl = (image: string): string => {
+  return image.startsWith('http') ? image : `https://web.poecdn.com${image}`;
+};
+
 // Strip the realm prefix the trade-location service prepends for PoE2 leagues
-// (e.g. "poe2/Runes of Aldur" -> "Runes of Aldur"), which poe.ninja's
-// `leagueName` parameter does not expect.
+// (e.g. "poe2/Runes of Aldur" -> "Runes of Aldur") and decode it. The league is
+// read from location.pathname, so it arrives already percent-encoded
+// ("Runes%20of%20Aldur"); decoding here lets the caller encodeURIComponent it
+// exactly once instead of double-encoding (which yields an empty poe.ninja payload).
+// poe.ninja's `league` query parameter expects the decoded display name.
 export const poe2LeagueName = (league: string): string => {
-  return league.replace(/^poe2\//, '');
+  const withoutRealm = league.replace(/^poe2\//, '');
+
+  try {
+    return decodeURIComponent(withoutRealm);
+  } catch (_error) {
+    return withoutRealm;
+  }
 };
 
 // Constants
 const CURRENCIES_RESOURCE_URI = '/data/currencyoverview?type=Currency';
-const POE2_CURRENCIES_RESOURCE_URI = '/currencyexchange/overview?overviewName=Currency';
+const POE2_CURRENCIES_RESOURCE_URI = '/exchange/current/overview?type=Currency';
 const RATIOS_CACHE_DURATION = 3600000; // 1 hour
 const RATIOS_CACHE_KEY = 'poe-ninja-chaos-ratios-cache';
 const POE2_RATIOS_CACHE_KEY = 'poe-ninja-poe2-ratios-cache';
@@ -100,14 +125,19 @@ export default class PoeNinja extends Service {
   }
 
   async fetchExaltedRatiosFor(league: string): Promise<Poe2CurrencyData> {
+    // Treat an empty cached object as a miss: poe.ninja returns an empty payload
+    // for an unknown league, and caching that (1h TTL) would otherwise suppress
+    // the feature for an hour even after the real cause is fixed.
     const cachedRatios = await this.lookupCachedExaltedRatiosFor(league);
-    if (cachedRatios) return cachedRatios;
+    if (cachedRatios && Object.keys(cachedRatios).length > 0) return cachedRatios;
 
-    const uri = `${POE2_CURRENCIES_RESOURCE_URI}&leagueName=${encodeURIComponent(poe2LeagueName(league))}`;
+    const uri = `${POE2_CURRENCIES_RESOURCE_URI}&league=${encodeURIComponent(poe2LeagueName(league))}`;
     const payload = (await this.extensionBackground.fetchPoeNinjaPoe2Resource(uri)) as PoeNinjaPoe2Payload;
 
     const ratios = parsePoe2Ratios(payload);
-    await this.cacheExaltedRatiosFor(league, ratios);
+    if (Object.keys(ratios).length > 0) {
+      await this.cacheExaltedRatiosFor(league, ratios);
+    }
 
     return ratios;
   }
