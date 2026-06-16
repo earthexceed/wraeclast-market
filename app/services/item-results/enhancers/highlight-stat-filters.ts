@@ -9,7 +9,11 @@ import SearchPanel from 'better-trading/services/search-panel';
 import {ItemResultsEnhancerService} from 'better-trading/types/item-results';
 
 // Constants
-const MODS_SELECTOR = '.explicitMod,.pseudoMod,.implicitMod';
+// PoE1 trade uses `.explicitMod`/`.pseudoMod`/`.implicitMod`; PoE2 trade2 renamed
+// these to `.item-mod` (with `--explicit`/`--pseudo`/`--implicit` modifiers). Match
+// both so highlighting works on either site. Over-matching is harmless — a mod is
+// only highlighted when its text matches an active stat filter.
+const MODS_SELECTOR = '.explicitMod,.pseudoMod,.implicitMod,.item-mod';
 
 export default class HighlightStatFilters extends Service implements ItemResultsEnhancerService {
   @service('search-panel')
