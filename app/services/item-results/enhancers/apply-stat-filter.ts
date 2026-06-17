@@ -11,7 +11,10 @@ import IntlService from 'ember-intl/services/intl';
 import FlashMessages from 'ember-cli-flash/services/flash-messages';
 
 // Constants
-const MODS_SELECTOR = '.explicitMod,.pseudoMod,.implicitMod,.item-mod';
+// Only the rolled prefix/suffix (explicit) mods, plus the pseudo "total" lines — NOT
+// implicit / rune / enchant / corrupted mods (e.g. "Bonded:" rune stats, base implicits),
+// which aren't what you filter for when shopping an item's rolls.
+const MODS_SELECTOR = '.explicitMod,.pseudoMod,.item-mod--explicit,.item-mod--pseudo';
 // trade2 tags each mod's value span with its exact stat id, e.g.
 // data-field="stat.explicit.stat_2482852589" — this is the real id (correct
 // local/global variant), far more reliable than matching on display text.

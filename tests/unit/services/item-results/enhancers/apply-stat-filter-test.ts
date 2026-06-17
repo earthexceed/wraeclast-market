@@ -9,7 +9,7 @@ import ApplyStatFilter from 'better-trading/services/item-results/enhancers/appl
 
 // A mod whose value span carries trade2's real stat id in data-field.
 const critMod = (value: string) =>
-  `<div class="item-mod"><span class="lc l">S1 [5—15]</span><span class="s lc" data-field="stat.explicit.stat_587431675">${value} increased Critical Hit Chance</span></div>`;
+  `<div class="item-mod item-mod--explicit"><span class="lc l">S1 [5—15]</span><span class="s lc" data-field="stat.explicit.stat_587431675">${value} increased Critical Hit Chance</span></div>`;
 
 describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
   setupTest();
@@ -34,8 +34,8 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
       [
         '<div class="item-popup__content">',
         critMod('14%'),
-        // no data-field => not a stat-filterable mod => no inputs
-        '  <div class="item-mod"><span class="s lc">Allocates a Notable Passive</span></div>',
+        // explicit but no data-field => not a stat-filterable mod => no inputs
+        '  <div class="item-mod item-mod--explicit"><span class="s lc">Allocates a Notable Passive</span></div>',
         '</div>',
       ].join('')
     );
@@ -68,7 +68,7 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
 
     container.insertAdjacentHTML(
       'afterbegin',
-      '<div class="item-popup__content"><div class="item-mod"><span class="s lc" data-field="stat.explicit.stat_4000000000">Cannot be Ignited</span></div></div>'
+      '<div class="item-popup__content"><div class="item-mod item-mod--explicit"><span class="s lc" data-field="stat.explicit.stat_4000000000">Cannot be Ignited</span></div></div>'
     );
     const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
 
