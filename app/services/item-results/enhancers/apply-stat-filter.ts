@@ -3,56 +3,94 @@ import Service, {inject as service} from '@ember/service';
 import window from 'ember-window-mock';
 
 // Types
-import SearchPanel, {ActiveStatFilter, setReactiveInputValue} from 'better-trading/services/search-panel';
+import SearchPanel, {ActiveStatFilter} from 'better-trading/services/search-panel';
+import StatFilterData, {normalizeStatText} from 'better-trading/services/stat-filter-data';
+import TradeLocation from 'better-trading/services/trade-location';
+import {poe2LeagueName} from 'better-trading/services/poe-ninja';
 import {ItemResultsEnhancerService} from 'better-trading/types/item-results';
 import IntlService from 'ember-intl/services/intl';
+import FlashMessages from 'ember-cli-flash/services/flash-messages';
 
 // Constants
 const MODS_SELECTOR = '.explicitMod,.pseudoMod,.implicitMod,.item-mod';
 const VALUE_SPAN_SELECTOR = '.s';
-const SEARCH_BUTTON_SELECTOR = 'button.search-btn';
-const ROLLED_VALUE_PATTERN = /([+\-]?\d+(?:\.\d+)?)%/;
+const ROLLED_VALUE_PATTERN = /[+\-]?\d+(?:\.\d+)?/;
+const TRADE_SEARCH_API = '/api/trade2/search/poe2';
 
 interface InjectedControl {
-  filter: ActiveStatFilter;
+  statId: string;
   minInput: HTMLInputElement;
   maxInput: HTMLInputElement;
+}
+
+interface StatFilterValue {
+  min?: number;
+  max?: number;
+}
+
+interface StatFilterEntry {
+  id: string;
+  value: StatFilterValue;
+}
+
+interface StatGroup {
+  type: string;
+  filters: StatFilterEntry[];
+}
+
+interface TradeQuery {
+  status?: object;
+  stats: StatGroup[];
+  filters?: object;
 }
 
 export default class ApplyStatFilter extends Service implements ItemResultsEnhancerService {
   @service('search-panel')
   searchPanel: SearchPanel;
 
+  @service('stat-filter-data')
+  statFilterData: StatFilterData;
+
+  @service('trade-location')
+  tradeLocation: TradeLocation;
+
   @service('intl')
   intl: IntlService;
 
+  @service('flash-messages')
+  flashMessages: FlashMessages;
+
   slug = 'apply-stat-filter';
+
+  statIdMap: Record<string, string> = {};
 
   filters: ActiveStatFilter[] = [];
 
-  prepare() {
+  async prepare() {
+    this.statIdMap = await this.statFilterData.getStatIdMap();
     this.filters = this.searchPanel.getActiveStatFilters();
   }
 
   enhance(itemElement: HTMLElement) {
-    if (this.filters.length === 0) return;
+    if (Object.keys(this.statIdMap).length === 0) return;
 
     const modElements = itemElement.querySelectorAll<HTMLElement>(MODS_SELECTOR);
     const controls: InjectedControl[] = [];
 
     modElements.forEach((modElement) => {
-      const modText = modElement.textContent || '';
-      const filter = this.filters.find((candidate) => candidate.needle.test(modText));
-      if (!filter) return;
+      const valueSpan = modElement.querySelector<HTMLElement>(VALUE_SPAN_SELECTOR) || modElement;
+      const statText = valueSpan.textContent || '';
+      const statId = this.statIdMap[normalizeStatText(statText)];
+      if (!statId) return;
 
-      // Mirror the filter's current value when it has one; otherwise fall back to
-      // the item's rolled value for min (a "find items at least this good" start).
-      const minValue = filter.minInput.value || this.extractRolledValue(modElement);
-      const maxValue = (filter.maxInput && filter.maxInput.value) || '';
+      // Pre-fill from the current filter's value when set, else the item's rolled value.
+      const existing = this.filters.find((candidate) => candidate.needle.test(modElement.textContent || ''));
+      const minValue = (existing && existing.minInput.value) || this.rolledValue(statText);
+      const maxValue = (existing && existing.maxInput && existing.maxInput.value) || '';
 
       const control = this.renderControl(minValue, maxValue);
       modElement.appendChild(control.wrapper);
-      controls.push({filter, minInput: control.minInput, maxInput: control.maxInput});
+      controls.push({statId, minInput: control.minInput, maxInput: control.maxInput});
     });
 
     if (controls.length === 0) return;
@@ -61,11 +99,10 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     modContainer.appendChild(this.renderApplyButton(controls));
   }
 
-  private extractRolledValue(modElement: HTMLElement): string {
-    const valueSpan = modElement.querySelector<HTMLElement>(VALUE_SPAN_SELECTOR) || modElement;
-    const match = (valueSpan.textContent || '').match(ROLLED_VALUE_PATTERN);
+  private rolledValue(statText: string): string {
+    const match = statText.match(ROLLED_VALUE_PATTERN);
 
-    return match ? match[1] : '';
+    return match ? match[0].replace(/^\+/, '') : '';
   }
 
   private renderControl(minValue: string, maxValue: string): {wrapper: HTMLElement; minInput: HTMLInputElement; maxInput: HTMLInputElement} {
@@ -121,19 +158,83 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     const button = window.document.createElement('button');
     button.classList.add('btn', 'btn-default', 'bt-apply-stat-filter-button');
     button.textContent = this.intl.t('item-results.apply-stat-filter.apply');
-    button.addEventListener('click', () => this.handleApply(controls));
+    button.addEventListener('click', () => {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      this.handleApply(controls);
+    });
 
     return button;
   }
 
-  private handleApply(controls: InjectedControl[]) {
-    controls.forEach(({filter, minInput, maxInput}) => {
-      setReactiveInputValue(filter.minInput, minInput.value);
-      if (filter.maxInput) setReactiveInputValue(filter.maxInput, maxInput.value);
-    });
+  private async handleApply(controls: InjectedControl[]) {
+    const encodedLeague = encodeURIComponent(poe2LeagueName(this.tradeLocation.league || ''));
 
-    const searchButton = window.document.querySelector<HTMLButtonElement>(SEARCH_BUTTON_SELECTOR);
-    if (searchButton) searchButton.click();
+    const query = await this.loadQuery(encodedLeague, this.tradeLocation.slug);
+    this.mergeControls(query, controls);
+
+    let searchId: string | null = null;
+    try {
+      const response = await window.fetch(`${TRADE_SEARCH_API}/${encodedLeague}`, {
+        method: 'POST',
+        headers: {'content-type': 'application/json'},
+        credentials: 'include',
+        body: JSON.stringify({query, sort: {price: 'asc'}}),
+      });
+      if (response.ok) searchId = ((await response.json()) as {id?: string}).id || null;
+    } catch (_error) {
+      searchId = null;
+    }
+
+    if (!searchId) {
+      return this.flashMessages.alert(this.intl.t('general.generic-alert-flash'));
+    }
+
+    window.location.href = `/trade2/search/poe2/${encodedLeague}/${searchId}`;
+  }
+
+  // Preserve the current search (category/rarity/existing filters) so Apply merges
+  // rather than replaces; fall back to a fresh query when there is no saved search.
+  private async loadQuery(encodedLeague: string, slug: string | null): Promise<TradeQuery> {
+    if (slug) {
+      try {
+        const response = await window.fetch(`${TRADE_SEARCH_API}/${encodedLeague}/${slug}`, {credentials: 'include'});
+        if (response.ok) {
+          const current = ((await response.json()) as {query?: TradeQuery}).query;
+          if (current && Array.isArray(current.stats)) return current;
+        }
+      } catch (_error) {
+        // fall through to a fresh query
+      }
+    }
+
+    return {status: {option: 'online'}, stats: [{type: 'and', filters: []}]};
+  }
+
+  private mergeControls(query: TradeQuery, controls: InjectedControl[]) {
+    let andGroup = query.stats.find((group) => group.type === 'and');
+    if (!andGroup) {
+      andGroup = {type: 'and', filters: []};
+      query.stats.unshift(andGroup);
+    }
+
+    controls.forEach(({statId, minInput, maxInput}) => {
+      const value: StatFilterValue = {};
+      const min = parseFloat(minInput.value);
+      const max = parseFloat(maxInput.value);
+      if (!Number.isNaN(min)) value.min = min;
+      if (!Number.isNaN(max)) value.max = max;
+      if (Object.keys(value).length === 0) return;
+
+      const existing = query.stats
+        .flatMap((group) => group.filters || [])
+        .find((filter) => filter.id === statId);
+
+      if (existing) {
+        existing.value = value;
+      } else {
+        (andGroup as StatGroup).filters.push({id: statId, value});
+      }
+    });
   }
 }
 

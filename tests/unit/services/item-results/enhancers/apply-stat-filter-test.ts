@@ -7,6 +7,8 @@ import {beforeEach, afterEach, describe, it} from 'mocha';
 // Types
 import ApplyStatFilter from 'better-trading/services/item-results/enhancers/apply-stat-filter';
 
+const CRIT_STAT = '#% increased Critical Hit Chance';
+
 describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
   setupTest();
 
@@ -22,15 +24,9 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
 
   afterEach(() => container.remove());
 
-  it('injects min/max inputs only on mods matching an active filter, falling back to the rolled value when the filter has no value', () => {
-    service.filters = [
-      {
-        text: '#% increased critical hit chance',
-        needle: new RegExp('[\\+\\-]?\\d+% increased critical hit chance', 'i'),
-        minInput: window.document.createElement('input'),
-        maxInput: window.document.createElement('input'),
-      },
-    ];
+  it('injects min/max inputs only on mods whose normalized text maps to a stat id, defaulting min to the rolled value', () => {
+    service.statIdMap = {[CRIT_STAT]: 'explicit.stat_587431675'};
+    service.filters = [];
 
     container.insertAdjacentHTML(
       'afterbegin',
@@ -46,7 +42,7 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     service.enhance(itemElement);
 
     const controls = itemElement.querySelectorAll('.bt-apply-stat-filter');
-    expect(controls.length).to.equal(1);
+    expect(controls.length).to.equal(1); // only the mapped crit mod, not Ignite Magnitude
     const min = controls[0].querySelector('input[data-bound="min"]') as HTMLInputElement;
     const max = controls[0].querySelector('input[data-bound="max"]') as HTMLInputElement;
     expect(min.value).to.equal('14');
@@ -54,14 +50,15 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     expect(itemElement.querySelectorAll('.bt-apply-stat-filter-button').length).to.equal(1);
   });
 
-  it('pre-fills the inputs with the filter’s current values when the filter already has them', () => {
+  it('pre-fills from the current filter value when that filter is already set', () => {
+    service.statIdMap = {[CRIT_STAT]: 'explicit.stat_587431675'};
     const filterMin = window.document.createElement('input');
     filterMin.value = '17';
     const filterMax = window.document.createElement('input');
     filterMax.value = '40';
     service.filters = [
       {
-        text: '#% increased critical hit chance',
+        text: 'increased critical hit chance',
         needle: new RegExp('[\\+\\-]?\\d+% increased critical hit chance', 'i'),
         minInput: filterMin,
         maxInput: filterMax,
@@ -84,14 +81,8 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
   });
 
   it('steps the value with the custom up/down spinners and clamps at zero', () => {
-    service.filters = [
-      {
-        text: '#% increased critical hit chance',
-        needle: new RegExp('[\\+\\-]?\\d+% increased critical hit chance', 'i'),
-        minInput: window.document.createElement('input'),
-        maxInput: window.document.createElement('input'),
-      },
-    ];
+    service.statIdMap = {[CRIT_STAT]: 'explicit.stat_587431675'};
+    service.filters = [];
 
     container.insertAdjacentHTML(
       'afterbegin',
@@ -113,41 +104,5 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     down.click();
     down.click();
     expect(min.value).to.equal('0'); // clamped, never negative
-  });
-
-  it('on Apply, writes each control value to its filter inputs and clicks Search once', () => {
-    const filterMin = window.document.createElement('input');
-    const filterMax = window.document.createElement('input');
-    service.filters = [
-      {
-        text: '#% increased critical hit chance',
-        needle: new RegExp('[\\+\\-]?\\d+% increased critical hit chance', 'i'),
-        minInput: filterMin,
-        maxInput: filterMax,
-      },
-    ];
-
-    let searchClicks = 0;
-    const searchButton = window.document.createElement('button');
-    searchButton.classList.add('search-btn');
-    searchButton.addEventListener('click', () => (searchClicks += 1));
-    container.appendChild(searchButton);
-
-    container.insertAdjacentHTML(
-      'beforeend',
-      '<div class="item-popup__content"><div class="item-mod"><span class="s lc">14% increased Critical Hit Chance</span></div></div>'
-    );
-    const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
-
-    service.enhance(itemElement);
-
-    const injectedMin = itemElement.querySelector('input[data-bound="min"]') as HTMLInputElement;
-    injectedMin.value = '20';
-
-    (itemElement.querySelector('.bt-apply-stat-filter-button') as HTMLButtonElement).click();
-
-    expect(filterMin.value).to.equal('20');
-    expect(filterMax.value).to.equal('');
-    expect(searchClicks).to.equal(1);
   });
 });
