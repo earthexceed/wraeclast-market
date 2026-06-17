@@ -72,6 +72,8 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
   enhance(itemElement: HTMLElement) {
     const modElements = itemElement.querySelectorAll<HTMLElement>(MODS_SELECTOR);
     const controls: InjectedControl[] = [];
+    let lastControlledMod: HTMLElement | null = null;
+    let firstWrapper: HTMLElement | null = null;
 
     modElements.forEach((modElement) => {
       const valueSpan = modElement.querySelector<HTMLElement>(STAT_FIELD_SELECTOR);
@@ -89,12 +91,23 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       modElement.style.position = 'relative'; // anchor the right-aligned control
       modElement.appendChild(control.wrapper);
       controls.push({statId, minInput: control.minInput, maxInput: control.maxInput, enabledInput: control.enabledInput});
+      lastControlledMod = modElement;
+      if (!firstWrapper) firstWrapper = control.wrapper;
     });
 
-    if (controls.length === 0) return;
+    if (controls.length === 0 || !lastControlledMod) return;
+    const anchorMod = lastControlledMod as HTMLElement;
 
-    const modContainer = modElements[0].parentElement || itemElement;
-    modContainer.appendChild(this.renderApplyButton(controls));
+    // Place the Apply button in the right-hand control column, just below the last
+    // mod's controls, and match its width to the column.
+    const modContainer = (modElements[0].parentElement as HTMLElement) || itemElement;
+    modContainer.style.position = 'relative';
+
+    const button = this.renderApplyButton(controls);
+    if (firstWrapper) button.style.width = `${(firstWrapper as HTMLElement).offsetWidth}px`;
+    const offsetTop = anchorMod.getBoundingClientRect().bottom - modContainer.getBoundingClientRect().top;
+    button.style.top = `${offsetTop + 4}px`;
+    modContainer.appendChild(button);
   }
 
   private rolledValue(statText: string): string {

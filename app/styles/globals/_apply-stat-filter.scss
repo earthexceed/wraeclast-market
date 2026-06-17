@@ -137,6 +137,8 @@
 }
 
 .bt-apply-stat-filter-button {
-  display: block;
-  margin: 6px 6px 2px auto; // right-aligned, in line with the control column
+  // Positioned below the control column (top + width are set inline per item).
+  position: absolute;
+  right: 6px;
+  padding: 2px 0;
 }
