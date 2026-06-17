@@ -21,7 +21,9 @@
 }
 
 .body {
-  // Allow this flex child to shrink below its content height so it can scroll.
+  // Fill the remaining height in the capped container and scroll internally
+  // (min-height:0 lets the flex child shrink below its content so overflow works).
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
 }
