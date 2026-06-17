@@ -19,10 +19,14 @@ const MODS_SELECTOR = '.explicitMod,.pseudoMod,.item-mod--explicit,.item-mod--ps
 // local/global variant), far more reliable than matching on display text.
 const STAT_FIELD_SELECTOR = '[data-field^="stat."]';
 const ROLLED_VALUE_PATTERN = /[+\-]?\d+(?:\.\d+)?/;
-// trade2 shows a rolled mod's value range in its left label, e.g. "P6 [6—13]".
-// Its presence means the mod is min/max-scalable; a fixed mod (e.g. "[1] ... every 4
-// seconds") has no range and can only be filtered by presence.
-const ROLL_RANGE_PATTERN = /\[\s*[+\-]?\d+(?:\.\d+)?\s*[—–-]\s*[+\-]?\d+(?:\.\d+)?\s*\]/;
+// trade2 shows a rolled mod's value range in its left label as two numbers joined by
+// an em/en dash, e.g. "P6 [6—13]", "S9 [3.1—4]", "P6 [6—13] + P7 [27—42]", and for
+// "Adds X to Y" damage mods "[1 to 200—300]". The dash between two numbers is the
+// scalability signal — match it anywhere in the label rather than requiring the range
+// to hug the brackets (the "1 to" prefix on added-damage rolls broke the tighter form).
+// A fixed mod (e.g. "[1] ... every 4 seconds") has a single number, no dash, so it
+// stays presence-only.
+const ROLL_RANGE_PATTERN = /\d+(?:\.\d+)?\s*[—–]\s*\d+(?:\.\d+)?/;
 const TRADE_SEARCH_API = '/api/trade2/search/poe2';
 
 interface InjectedControl {

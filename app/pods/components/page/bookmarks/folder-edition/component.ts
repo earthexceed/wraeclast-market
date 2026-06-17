@@ -80,9 +80,10 @@ export default class BookmarksFolderEdition extends Component<Args> {
 
   get iconAscendancyOptions() {
     const icons = this.tradeLocation.version === '2' ? POE2_ASCENDANCY_ICONS : POE1_ASCENDANCY_ICONS;
-    return icons.map((iconGroupEnum) => {
-      return Object.values(iconGroupEnum).map(this.iconOptionFromIcon);
-    });
+    // Flatten every class' ascendancies into a single ordered list so they fill a
+    // uniform grid. Grouping per class produced ragged vertical columns (classes
+    // have 1–3 ascendancies), leaving holes in the layout.
+    return icons.flatMap((iconGroupEnum) => Object.values(iconGroupEnum)).map(this.iconOptionFromIcon);
   }
 
   get iconItemOptions() {

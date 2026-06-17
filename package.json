@@ -1,6 +1,6 @@
 {
   "name": "better-trading",
-  "version": "1.9.2",
+  "version": "2.0.0",
   "changelog": "poe2-fork",
   "private": true,
   "directories": {
@@ -9,7 +9,7 @@
   },
   "manifest": {
     "name": "Wraeclast Market — PoE & PoE2 Trade Tool",
-    "description": "Path of Exile trade-site enhancements for PoE and PoE2: bookmarks, equivalent price check (poe.ninja), searched-mod highlighting and more."
+    "description": "PoE & PoE2 trade-site tools: bookmarks, equivalent prices (poe.ninja), searched-mod highlighting, stat filters and more."
   },
   "repository": "https://github.com/earthexceed/better-trading-poe2",
   "engine-strict": true,

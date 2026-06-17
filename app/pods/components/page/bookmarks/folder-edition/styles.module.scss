@@ -8,7 +8,10 @@
 
   &.with-ascendancies {
     grid-template-columns: repeat(auto-fill, 92px);
-    align-items: start;
+    // Equal-height rows so a wrapped two-line name never makes its row taller
+    // than its neighbours — keeps the whole grid on a clean baseline.
+    grid-auto-rows: 1fr;
+    justify-content: center;
   }
 
   &.with-items {
@@ -37,12 +40,15 @@
     background-color: rgba($gold, 0.5);
   }
 
-  // Ascendancy tiles stack the portrait above its name.
+  // Ascendancy tiles stack the portrait above its name and fill their grid cell
+  // so every tile in a row is the same height.
   &.is-named {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
     gap: 3px;
+    height: 100%;
   }
 }
 
@@ -54,6 +60,11 @@
 }
 
 .icon-option-label {
+  // Reserve two lines so single- and double-line names share a baseline.
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
   font-size: 10px;
   line-height: 1.15;
   text-align: center;
