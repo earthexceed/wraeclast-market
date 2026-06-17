@@ -85,11 +85,49 @@
   border-top: 4px solid #e8c873;
 }
 
+// Fields dim while their mod is not enabled, so the disabled state reads clearly.
+.bt-apply-stat-filter-field {
+  transition: opacity 0.12s ease;
+}
+
+.bt-apply-stat-filter:not(.bt-is-enabled) .bt-apply-stat-filter-field {
+  opacity: 0.35;
+}
+
+// Custom themed checkbox (the native one clashes with the trade UI).
 .bt-apply-stat-filter-enabled {
+  position: relative;
   align-self: center;
-  margin: 0 2px;
+  width: 16px;
+  height: 16px;
+  margin: 0 4px;
   cursor: pointer;
-  accent-color: #e8c873;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: rgba(0, 0, 0, 0.45);
+  border: 1px solid #6b6147;
+  border-radius: 3px;
+
+  &:hover {
+    border-color: #e8c873;
+  }
+
+  &:checked {
+    background-color: rgba(200, 170, 90, 0.25);
+    border-color: #e8c873;
+  }
+
+  &:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid #e8c873;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
 }
 
 .bt-apply-stat-filter-button {

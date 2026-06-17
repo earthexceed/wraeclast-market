@@ -50,9 +50,16 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     expect(min.value).to.equal('14');
     expect(max.value).to.equal('');
     // opt-in toggle present and off by default (Apply only takes enabled mods)
-    const enabled = controls[0].querySelector('.bt-apply-stat-filter-enabled') as HTMLInputElement;
+    const wrapper = controls[0] as HTMLElement;
+    const enabled = wrapper.querySelector('.bt-apply-stat-filter-enabled') as HTMLInputElement;
     expect(enabled).to.be.an('HTMLInputElement');
     expect(enabled.checked).to.equal(false);
+    expect(wrapper.classList.contains('bt-is-enabled')).to.equal(false); // dimmed by default
+
+    enabled.checked = true;
+    enabled.dispatchEvent(new Event('change'));
+    expect(wrapper.classList.contains('bt-is-enabled')).to.equal(true); // active once enabled
+
     expect(itemElement.querySelectorAll('.bt-apply-stat-filter-button').length).to.equal(1);
   });
 

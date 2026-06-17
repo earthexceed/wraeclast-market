@@ -113,10 +113,14 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     const max = this.renderField('max', maxValue);
 
     // Opt-in toggle: only enabled mods are applied, so Apply doesn't filter every mod.
+    // The wrapper carries `bt-is-enabled` so the fields can dim while disabled.
     const enabledInput = window.document.createElement('input');
     enabledInput.type = 'checkbox';
     enabledInput.classList.add('bt-apply-stat-filter-enabled');
     enabledInput.title = this.intl.t('item-results.apply-stat-filter.enable');
+    enabledInput.addEventListener('change', () => {
+      wrapper.classList.toggle('bt-is-enabled', enabledInput.checked);
+    });
 
     wrapper.appendChild(min.field);
     wrapper.appendChild(max.field);
