@@ -8,8 +8,8 @@
     "test": "tests"
   },
   "manifest": {
-    "name": "Better Trading PoE2",
-    "description": "Trade-site enhancements for Path of Exile 2 — a PoE2-focused fork of Better Trading."
+    "name": "Wraeclast Market — PoE & PoE2 Trade Tool",
+    "description": "Path of Exile trade-site enhancements for PoE and PoE2: bookmarks, equivalent price check (poe.ninja), searched-mod highlighting and more."
   },
   "repository": "https://github.com/earthexceed/better-trading-poe2",
   "engine-strict": true,

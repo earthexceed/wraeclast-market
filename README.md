@@ -1,8 +1,8 @@
 ![logo](https://user-images.githubusercontent.com/4255460/70675096-29118280-1c56-11ea-8e58-c8e74423d0eb.png)
 
-# Better trading
+# Wraeclast Market
 
-A browser extension that enhances the pathofexile.com trade site experience for Path of Exile and Path of Exile 2.
+A browser extension that enhances the pathofexile.com trade site experience for Path of Exile and Path of Exile 2. (Based on the [Better Trading](https://github.com/exile-center/better-trading) extension.)
 
 <a href="https://chrome.google.com/webstore/detail/better-pathofexile-tradin/fhlinfpmdlijegjlpgedcmglkakaghnk" target="_blank">
   <img src="./.github/readme/chrome-button.png" alt="Download for Google Chrome">

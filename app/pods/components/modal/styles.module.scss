@@ -1,5 +1,11 @@
 .container {
+  display: flex;
+  flex-direction: column;
   width: 650px;
+  max-width: calc(100vw - 40px);
+  // Stay within the viewport so tall content (e.g. the icon picker) scrolls
+  // internally instead of pushing the Save button off-screen.
+  max-height: calc(100vh - 40px);
   padding: 20px;
   background-color: rgba(#141414, 0.8);
   color: $white;
@@ -7,10 +13,17 @@
 }
 
 .header {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+}
+
+.body {
+  // Allow this flex child to shrink below its content height so it can scroll.
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .header-title {
