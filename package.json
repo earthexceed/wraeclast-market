@@ -1,17 +1,17 @@
 {
   "name": "better-trading",
   "version": "1.9.2",
-  "changelog": "1-9-2-mercenaries-2",
+  "changelog": "poe2-fork",
   "private": true,
   "directories": {
     "doc": "doc",
     "test": "tests"
   },
   "manifest": {
-    "name": "Better PathOfExile Trading",
-    "description": ""
+    "name": "Better Trading PoE2",
+    "description": "Trade-site enhancements for Path of Exile 2 — a PoE2-focused fork of Better Trading."
   },
-  "repository": "https://github.com/poe-world/better-trading",
+  "repository": "https://github.com/earthexceed/better-trading-poe2",
   "engine-strict": true,
   "engines": {
     "node": "~12.22",
