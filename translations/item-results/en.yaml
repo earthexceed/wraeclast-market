@@ -8,3 +8,5 @@ item-results:
     button: '{count, plural, =0 {} =1 {1 similar result} other {# similar results}}'
   apply-stat-filter:
     apply: Apply
+    enable: Enable this mod for Apply
+    none-enabled: Enable at least one mod (checkbox) before applying.

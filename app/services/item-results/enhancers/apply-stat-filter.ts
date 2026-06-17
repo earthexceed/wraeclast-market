@@ -23,6 +23,7 @@ interface InjectedControl {
   statId: string;
   minInput: HTMLInputElement;
   maxInput: HTMLInputElement;
+  enabledInput: HTMLInputElement;
 }
 
 interface StatFilterValue {
@@ -86,7 +87,7 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
 
       const control = this.renderControl(minValue, maxValue);
       modElement.appendChild(control.wrapper);
-      controls.push({statId, minInput: control.minInput, maxInput: control.maxInput});
+      controls.push({statId, minInput: control.minInput, maxInput: control.maxInput, enabledInput: control.enabledInput});
     });
 
     if (controls.length === 0) return;
@@ -101,17 +102,27 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     return match ? match[0].replace(/^\+/, '') : '';
   }
 
-  private renderControl(minValue: string, maxValue: string): {wrapper: HTMLElement; minInput: HTMLInputElement; maxInput: HTMLInputElement} {
+  private renderControl(
+    minValue: string,
+    maxValue: string
+  ): {wrapper: HTMLElement; minInput: HTMLInputElement; maxInput: HTMLInputElement; enabledInput: HTMLInputElement} {
     const wrapper = window.document.createElement('span');
     wrapper.classList.add('bt-apply-stat-filter');
 
     const min = this.renderField('min', minValue);
     const max = this.renderField('max', maxValue);
 
+    // Opt-in toggle: only enabled mods are applied, so Apply doesn't filter every mod.
+    const enabledInput = window.document.createElement('input');
+    enabledInput.type = 'checkbox';
+    enabledInput.classList.add('bt-apply-stat-filter-enabled');
+    enabledInput.title = this.intl.t('item-results.apply-stat-filter.enable');
+
     wrapper.appendChild(min.field);
     wrapper.appendChild(max.field);
+    wrapper.appendChild(enabledInput);
 
-    return {wrapper, minInput: min.input, maxInput: max.input};
+    return {wrapper, minInput: min.input, maxInput: max.input, enabledInput};
   }
 
   private renderField(bound: 'min' | 'max', value: string): {field: HTMLElement; input: HTMLInputElement} {
@@ -163,10 +174,15 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
   }
 
   private async handleApply(controls: InjectedControl[]) {
+    const enabled = controls.filter((control) => control.enabledInput.checked);
+    if (enabled.length === 0) {
+      return this.flashMessages.alert(this.intl.t('item-results.apply-stat-filter.none-enabled'));
+    }
+
     const encodedLeague = encodeURIComponent(poe2LeagueName(this.tradeLocation.league || ''));
 
     const query = await this.loadQuery(encodedLeague, this.tradeLocation.slug);
-    this.mergeControls(query, controls);
+    this.mergeControls(query, enabled);
 
     let searchId: string | null = null;
     try {

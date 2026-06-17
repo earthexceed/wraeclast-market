@@ -49,6 +49,10 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     const max = controls[0].querySelector('input[data-bound="max"]') as HTMLInputElement;
     expect(min.value).to.equal('14');
     expect(max.value).to.equal('');
+    // opt-in toggle present and off by default (Apply only takes enabled mods)
+    const enabled = controls[0].querySelector('.bt-apply-stat-filter-enabled') as HTMLInputElement;
+    expect(enabled).to.be.an('HTMLInputElement');
+    expect(enabled.checked).to.equal(false);
     expect(itemElement.querySelectorAll('.bt-apply-stat-filter-button').length).to.equal(1);
   });
 
