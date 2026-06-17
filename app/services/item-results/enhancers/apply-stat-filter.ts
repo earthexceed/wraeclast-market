@@ -45,7 +45,12 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       const filter = this.filters.find((candidate) => candidate.needle.test(modText));
       if (!filter) return;
 
-      const control = this.renderControl(this.extractRolledValue(modElement));
+      // Mirror the filter's current value when it has one; otherwise fall back to
+      // the item's rolled value for min (a "find items at least this good" start).
+      const minValue = filter.minInput.value || this.extractRolledValue(modElement);
+      const maxValue = (filter.maxInput && filter.maxInput.value) || '';
+
+      const control = this.renderControl(minValue, maxValue);
       modElement.appendChild(control.wrapper);
       controls.push({filter, minInput: control.minInput, maxInput: control.maxInput});
     });
@@ -63,7 +68,7 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     return match ? match[1] : '';
   }
 
-  private renderControl(rolledValue: string): {wrapper: HTMLElement; minInput: HTMLInputElement; maxInput: HTMLInputElement} {
+  private renderControl(minValue: string, maxValue: string): {wrapper: HTMLElement; minInput: HTMLInputElement; maxInput: HTMLInputElement} {
     const wrapper = window.document.createElement('span');
     wrapper.classList.add('bt-apply-stat-filter');
 
@@ -71,12 +76,13 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     minInput.type = 'number';
     minInput.placeholder = 'min';
     minInput.dataset.bound = 'min';
-    minInput.value = rolledValue;
+    minInput.value = minValue;
 
     const maxInput = window.document.createElement('input');
     maxInput.type = 'number';
     maxInput.placeholder = 'max';
     maxInput.dataset.bound = 'max';
+    maxInput.value = maxValue;
 
     wrapper.appendChild(minInput);
     wrapper.appendChild(maxInput);

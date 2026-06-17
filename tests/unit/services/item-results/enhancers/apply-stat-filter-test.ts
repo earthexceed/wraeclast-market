@@ -22,7 +22,7 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
 
   afterEach(() => container.remove());
 
-  it('injects min/max inputs only on mods matching an active filter, pre-filling min with the rolled value', () => {
+  it('injects min/max inputs only on mods matching an active filter, falling back to the rolled value when the filter has no value', () => {
     service.filters = [
       {
         text: '#% increased critical hit chance',
@@ -52,6 +52,35 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     expect(min.value).to.equal('14');
     expect(max.value).to.equal('');
     expect(itemElement.querySelectorAll('.bt-apply-stat-filter-button').length).to.equal(1);
+  });
+
+  it('pre-fills the inputs with the filter’s current values when the filter already has them', () => {
+    const filterMin = window.document.createElement('input');
+    filterMin.value = '17';
+    const filterMax = window.document.createElement('input');
+    filterMax.value = '40';
+    service.filters = [
+      {
+        text: '#% increased critical hit chance',
+        needle: new RegExp('[\\+\\-]?\\d+% increased critical hit chance', 'i'),
+        minInput: filterMin,
+        maxInput: filterMax,
+      },
+    ];
+
+    container.insertAdjacentHTML(
+      'afterbegin',
+      '<div class="item-popup__content"><div class="item-mod"><span class="s lc">19% increased Critical Hit Chance</span></div></div>'
+    );
+    const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
+
+    service.enhance(itemElement);
+
+    const min = itemElement.querySelector('input[data-bound="min"]') as HTMLInputElement;
+    const max = itemElement.querySelector('input[data-bound="max"]') as HTMLInputElement;
+    // filter min=17 wins over the item's rolled 19; filter max=40 shows instead of empty
+    expect(min.value).to.equal('17');
+    expect(max.value).to.equal('40');
   });
 
   it('on Apply, writes each control value to its filter inputs and clicks Search once', () => {
