@@ -3,7 +3,6 @@ import Service, {inject as service} from '@ember/service';
 import window from 'ember-window-mock';
 
 // Types
-import SearchPanel, {ActiveStatFilter} from 'better-trading/services/search-panel';
 import TradeLocation from 'better-trading/services/trade-location';
 import {poe2LeagueName} from 'better-trading/services/poe-ninja';
 import {ItemResultsEnhancerService} from 'better-trading/types/item-results';
@@ -52,9 +51,6 @@ interface TradeQuery {
 }
 
 export default class ApplyStatFilter extends Service implements ItemResultsEnhancerService {
-  @service('search-panel')
-  searchPanel: SearchPanel;
-
   @service('trade-location')
   tradeLocation: TradeLocation;
 
@@ -66,11 +62,44 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
 
   slug = 'apply-stat-filter';
 
-  filters: ActiveStatFilter[] = [];
+  // Active filters in the current search, keyed by stat id — used to pre-fill the
+  // inputs and pre-check the enable box for mods already being filtered.
+  activeFilters: Record<string, StatFilterValue> = {};
 
-  prepare() {
-    // Only used to pre-fill inputs from filters the user has already set.
-    this.filters = this.searchPanel.getActiveStatFilters();
+  private cachedSlug: string | null = null;
+
+  async prepare() {
+    const slug = this.tradeLocation.slug;
+    if (!slug) {
+      this.activeFilters = {};
+      this.cachedSlug = null;
+      return;
+    }
+    if (slug === this.cachedSlug) return; // same search — reuse
+
+    const encodedLeague = encodeURIComponent(poe2LeagueName(this.tradeLocation.league || ''));
+    this.activeFilters = await this.fetchActiveFilters(encodedLeague, slug);
+    this.cachedSlug = slug;
+  }
+
+  private async fetchActiveFilters(encodedLeague: string, slug: string): Promise<Record<string, StatFilterValue>> {
+    const map: Record<string, StatFilterValue> = {};
+    try {
+      const response = await window.fetch(`${TRADE_SEARCH_API}/${encodedLeague}/${slug}`, {credentials: 'include'});
+      if (!response.ok) return map;
+      const query = ((await response.json()) as {query?: TradeQuery}).query;
+      if (query && Array.isArray(query.stats)) {
+        query.stats
+          .flatMap((group) => group.filters || [])
+          .forEach((filter) => {
+            if (filter && filter.id) map[filter.id] = filter.value || {};
+          });
+      }
+    } catch (_error) {
+      // leave map empty
+    }
+
+    return map;
   }
 
   enhance(itemElement: HTMLElement) {
@@ -90,12 +119,17 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       // by presence — show just the enable checkbox, no min/max.
       const scalable = ROLLED_VALUE_PATTERN.test(statText);
 
-      // Pre-fill from the current filter's value when set, else the item's rolled value.
-      const existing = this.filters.find((candidate) => candidate.needle.test(modElement.textContent || ''));
-      const minValue = scalable ? (existing && existing.minInput.value) || this.rolledValue(statText) : '';
-      const maxValue = scalable ? (existing && existing.maxInput && existing.maxInput.value) || '' : '';
+      // If this stat is already filtered in the current search, pre-fill from that
+      // filter's value and pre-enable it; otherwise default min to the item's roll.
+      const active = this.activeFilters[statId];
+      const minValue = active && active.min !== undefined ? String(active.min) : scalable ? this.rolledValue(statText) : '';
+      const maxValue = active && active.max !== undefined ? String(active.max) : '';
 
       const control = this.renderControl(scalable, minValue, maxValue);
+      if (active) {
+        control.enabledInput.checked = true;
+        control.wrapper.classList.add('bt-is-enabled');
+      }
       modElement.style.position = 'relative'; // anchor the right-aligned control
       modElement.appendChild(control.wrapper);
       controls.push({statId, minInput: control.minInput, maxInput: control.maxInput, enabledInput: control.enabledInput});

@@ -2,9 +2,6 @@
 import Service from '@ember/service';
 import window from 'ember-window-mock';
 
-// Utilities
-import {escapeRegex} from 'better-trading/utilities/escape-regex';
-
 // Constants
 const NULL_RARITY = 'Any';
 const NULL_CATEGORY = 'Any';
@@ -16,28 +13,6 @@ const CATEGORY_INPUT_SELECTOR =
 const RARITY_INPUT_SELECTOR =
   '.search-advanced-items .filter-group:nth-of-type(1) .filter-property:nth-of-type(2) input';
 const STATS_SELECTOR = '.search-advanced-pane:last-child .filter-group-body .filter:not(.disabled) .filter-title';
-const STAT_FILTER_ROW_SELECTOR = '.search-advanced-pane:last-child .filter-group-body .filter:not(.disabled)';
-
-export interface ActiveStatFilter {
-  text: string;
-  needle: RegExp;
-  minInput: HTMLInputElement;
-  maxInput: HTMLInputElement | null;
-}
-
-// Set an input's value so Vue (trade2's framework) registers the change: assign via
-// the native value setter, then dispatch bubbling `input` and `change` events.
-export const setReactiveInputValue = (input: HTMLInputElement, value: string): void => {
-  const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
-  if (nativeSetter) {
-    nativeSetter.call(input, value);
-  } else {
-    input.value = value;
-  }
-
-  input.dispatchEvent(new Event('input', {bubbles: true}));
-  input.dispatchEvent(new Event('change', {bubbles: true}));
-};
 
 export default class SearchPanel extends Service {
   recommendTitle() {
@@ -78,24 +53,6 @@ export default class SearchPanel extends Service {
     });
 
     return stats;
-  }
-
-  getActiveStatFilters(): ActiveStatFilter[] {
-    const filters: ActiveStatFilter[] = [];
-
-    window.document.querySelectorAll(STAT_FILTER_ROW_SELECTOR).forEach((row: HTMLElement) => {
-      const titleElement = row.querySelector<HTMLElement>('.filter-title');
-      const minInput = row.querySelector<HTMLInputElement>('input.minmax[placeholder="min"]');
-      if (!titleElement || !minInput) return;
-
-      const text = titleElement.innerText.trim().toLowerCase().replace(/^pseudo /, '');
-      const needle = new RegExp(escapeRegex(text).replace(/#/g, '[\\+\\-]?\\d+'), 'i');
-      const maxInput = row.querySelector<HTMLInputElement>('input.minmax[placeholder="max"]');
-
-      filters.push({text, needle, minInput, maxInput});
-    });
-
-    return filters;
   }
 
   _scrapeInputValue(selector: string, nullValue?: string): string | null {

@@ -27,7 +27,7 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
   afterEach(() => container.remove());
 
   it('injects min/max inputs only on mods that carry a stat id, defaulting min to the rolled value', () => {
-    service.filters = [];
+    service.activeFilters = {};
 
     container.insertAdjacentHTML(
       'afterbegin',
@@ -64,7 +64,7 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
   });
 
   it('shows only the enable checkbox (no min/max) for presence mods with no numeric value', () => {
-    service.filters = [];
+    service.activeFilters = {};
 
     container.insertAdjacentHTML(
       'afterbegin',
@@ -80,34 +80,29 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     expect(wrapper.querySelectorAll('.bt-apply-stat-filter-enabled').length).to.equal(1); // checkbox only
   });
 
-  it('pre-fills from the current filter value when that filter is already set', () => {
-    const filterMin = window.document.createElement('input');
-    filterMin.value = '17';
-    const filterMax = window.document.createElement('input');
-    filterMax.value = '40';
-    service.filters = [
-      {
-        text: 'increased critical hit chance',
-        needle: new RegExp('[\\+\\-]?\\d+% increased critical hit chance', 'i'),
-        minInput: filterMin,
-        maxInput: filterMax,
-      },
-    ];
+  it('pre-fills from + pre-enables a stat already filtered in the current search (by id)', () => {
+    // crit mod's data-field is stat.explicit.stat_587431675
+    service.activeFilters = {'explicit.stat_587431675': {min: 17, max: 40}};
 
     container.insertAdjacentHTML('afterbegin', `<div class="item-popup__content">${critMod('19%')}</div>`);
     const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
 
     service.enhance(itemElement);
 
-    const min = itemElement.querySelector('input[data-bound="min"]') as HTMLInputElement;
-    const max = itemElement.querySelector('input[data-bound="max"]') as HTMLInputElement;
-    // filter min=17 wins over the item's rolled 19; filter max=40 shows instead of empty
+    const wrapper = itemElement.querySelector('.bt-apply-stat-filter') as HTMLElement;
+    const min = wrapper.querySelector('input[data-bound="min"]') as HTMLInputElement;
+    const max = wrapper.querySelector('input[data-bound="max"]') as HTMLInputElement;
+    const enabled = wrapper.querySelector('.bt-apply-stat-filter-enabled') as HTMLInputElement;
+    // active filter min=17 wins over the item's rolled 19; max=40 shown
     expect(min.value).to.equal('17');
     expect(max.value).to.equal('40');
+    // already filtered → pre-enabled (checked + not dimmed)
+    expect(enabled.checked).to.equal(true);
+    expect(wrapper.classList.contains('bt-is-enabled')).to.equal(true);
   });
 
   it('steps the value with the custom up/down spinners and clamps at zero', () => {
-    service.filters = [];
+    service.activeFilters = {};
 
     container.insertAdjacentHTML('afterbegin', `<div class="item-popup__content">${critMod('1%')}</div>`);
     const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
