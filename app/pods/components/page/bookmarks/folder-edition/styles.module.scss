@@ -3,11 +3,12 @@
   grid-gap: 8px;
 
   + .icon-options {
-    margin-top: 10px;
+    margin-top: 14px;
   }
 
   &.with-ascendancies {
-    grid-template-columns: repeat(auto-fill, 75px);
+    grid-template-columns: repeat(auto-fill, 92px);
+    align-items: start;
   }
 
   &.with-items {
@@ -16,19 +17,46 @@
 }
 
 .icon-option {
+  display: block;
+  padding: 3px;
   border: 2px solid transparent;
-  background-color: transparent;
-  transition: 0.2s ease;
-  transition-property: border-color, background-color;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.03);
+  transition: 0.15s ease;
+  transition-property: border-color, background-color, transform;
   cursor: pointer;
+
+  &:hover {
+    border-color: rgba($gold-alt, 0.65);
+    background-color: rgba($gold, 0.18);
+    transform: translateY(-1px);
+  }
 
   &.is-selected {
     border-color: $gold-alt;
     background-color: rgba($gold, 0.5);
   }
+
+  // Ascendancy tiles stack the portrait above its name.
+  &.is-named {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
 }
 
 .icon-option-image {
+  display: block;
   width: 100%;
   height: auto;
+  border-radius: 4px;
+}
+
+.icon-option-label {
+  font-size: 10px;
+  line-height: 1.15;
+  text-align: center;
+  color: #d6d6d6;
+  word-break: break-word;
 }

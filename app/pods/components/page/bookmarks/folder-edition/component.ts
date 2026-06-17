@@ -26,7 +26,20 @@ import {
   BookmarksFolderStruct,
   BookmarksFolderIcon,
   BookmarksFolderAscendancyPoE2HuntressIcon,
+  BookmarksFolderAscendancyPoE2DruidIcon,
 } from 'better-trading/types/bookmarks';
+
+// Lower-case connecting words read better in a title (e.g. "Acolyte of Chayula").
+const TITLE_SMALL_WORDS = new Set(['of', 'the', 'and']);
+
+const iconLabel = (icon: string): string =>
+  icon
+    .replace(/^poe2-/, '')
+    .split('-')
+    .map((word, index) =>
+      index > 0 && TITLE_SMALL_WORDS.has(word) ? word : word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join(' ');
 
 const POE1_ASCENDANCY_ICONS: Array<Record<string, BookmarksFolderIcon>> = [
   BookmarksFolderAscendancyDuelistIcon,
@@ -46,6 +59,7 @@ const POE2_ASCENDANCY_ICONS: Array<Record<string, BookmarksFolderIcon>> = [
   BookmarksFolderAscendancyPoE2MonkIcon,
   BookmarksFolderAscendancyPoE2MercenaryIcon,
   BookmarksFolderAscendancyPoE2WitchIcon,
+  BookmarksFolderAscendancyPoE2DruidIcon,
 ];
 
 interface Args {
@@ -97,6 +111,7 @@ export default class BookmarksFolderEdition extends Component<Args> {
     return {
       value: icon,
       imagePath: `bookmark-folder/${icon}.png`,
+      label: iconLabel(icon),
     };
   }
 }

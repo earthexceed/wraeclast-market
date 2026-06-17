@@ -37,13 +37,15 @@
               {{#each ascendancyOptions as |ascendancyOption|}}
                 <li
                   {{on "click" (fn this.toggleIcon ascendancyOption.value)}}
-                  local-class="icon-option {{if (eq ascendancyOption.value this.folder.icon) "is-selected"}}"
+                  local-class="icon-option is-named {{if (eq ascendancyOption.value this.folder.icon) "is-selected"}}"
+                  title={{ascendancyOption.label}}
                 >
                   <img
                     local-class="icon-option-image"
                     src={{image-resource-url ascendancyOption.imagePath}}
-                    alt={{ascendancyOption.value}}
+                    alt={{ascendancyOption.label}}
                   >
+                  <span local-class="icon-option-label">{{ascendancyOption.label}}</span>
                 </li>
               {{/each}}
             </ul>
