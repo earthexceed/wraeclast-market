@@ -21,8 +21,9 @@ const TRADE_SEARCH_API = '/api/trade2/search/poe2';
 
 interface InjectedControl {
   statId: string;
-  minInput: HTMLInputElement;
-  maxInput: HTMLInputElement;
+  // Absent for presence-only mods (no numeric value to scale, e.g. "Cannot be Ignited").
+  minInput?: HTMLInputElement;
+  maxInput?: HTMLInputElement;
   enabledInput: HTMLInputElement;
 }
 
@@ -81,18 +82,22 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       if (!valueSpan || !field) return;
 
       const statId = field.replace(/^stat\./, '');
+      const statText = valueSpan.textContent || '';
+      // Mods with no numeric value (e.g. "Cannot be Ignited") can only be filtered
+      // by presence — show just the enable checkbox, no min/max.
+      const scalable = ROLLED_VALUE_PATTERN.test(statText);
 
       // Pre-fill from the current filter's value when set, else the item's rolled value.
       const existing = this.filters.find((candidate) => candidate.needle.test(modElement.textContent || ''));
-      const minValue = (existing && existing.minInput.value) || this.rolledValue(valueSpan.textContent || '');
-      const maxValue = (existing && existing.maxInput && existing.maxInput.value) || '';
+      const minValue = scalable ? (existing && existing.minInput.value) || this.rolledValue(statText) : '';
+      const maxValue = scalable ? (existing && existing.maxInput && existing.maxInput.value) || '' : '';
 
-      const control = this.renderControl(minValue, maxValue);
+      const control = this.renderControl(scalable, minValue, maxValue);
       modElement.style.position = 'relative'; // anchor the right-aligned control
       modElement.appendChild(control.wrapper);
       controls.push({statId, minInput: control.minInput, maxInput: control.maxInput, enabledInput: control.enabledInput});
       lastControlledMod = modElement;
-      if (!firstWrapper) firstWrapper = control.wrapper;
+      if (!firstWrapper && scalable) firstWrapper = control.wrapper; // size the button to a full control
     });
 
     if (controls.length === 0 || !lastControlledMod) return;
@@ -117,14 +122,23 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
   }
 
   private renderControl(
+    scalable: boolean,
     minValue: string,
     maxValue: string
-  ): {wrapper: HTMLElement; minInput: HTMLInputElement; maxInput: HTMLInputElement; enabledInput: HTMLInputElement} {
+  ): {wrapper: HTMLElement; minInput?: HTMLInputElement; maxInput?: HTMLInputElement; enabledInput: HTMLInputElement} {
     const wrapper = window.document.createElement('span');
     wrapper.classList.add('bt-apply-stat-filter');
 
-    const min = this.renderField('min', minValue);
-    const max = this.renderField('max', maxValue);
+    let minInput: HTMLInputElement | undefined;
+    let maxInput: HTMLInputElement | undefined;
+    if (scalable) {
+      const min = this.renderField('min', minValue);
+      const max = this.renderField('max', maxValue);
+      minInput = min.input;
+      maxInput = max.input;
+      wrapper.appendChild(min.field);
+      wrapper.appendChild(max.field);
+    }
 
     // Opt-in toggle: only enabled mods are applied, so Apply doesn't filter every mod.
     // The wrapper carries `bt-is-enabled` so the fields can dim while disabled.
@@ -136,11 +150,9 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       wrapper.classList.toggle('bt-is-enabled', enabledInput.checked);
     });
 
-    wrapper.appendChild(min.field);
-    wrapper.appendChild(max.field);
     wrapper.appendChild(enabledInput);
 
-    return {wrapper, minInput: min.input, maxInput: max.input, enabledInput};
+    return {wrapper, minInput, maxInput, enabledInput};
   }
 
   private renderField(bound: 'min' | 'max', value: string): {field: HTMLElement; input: HTMLInputElement} {
@@ -249,11 +261,11 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
 
     controls.forEach(({statId, minInput, maxInput}) => {
       const value: StatFilterValue = {};
-      const min = parseFloat(minInput.value);
-      const max = parseFloat(maxInput.value);
+      const min = minInput ? parseFloat(minInput.value) : NaN;
+      const max = maxInput ? parseFloat(maxInput.value) : NaN;
       if (!Number.isNaN(min)) value.min = min;
       if (!Number.isNaN(max)) value.max = max;
-      if (Object.keys(value).length === 0) return;
+      // Empty value is intentional for presence-only mods ("must have this mod").
 
       const existing = query.stats
         .flatMap((group) => group.filters || [])

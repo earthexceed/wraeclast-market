@@ -63,6 +63,23 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     expect(itemElement.querySelectorAll('.bt-apply-stat-filter-button').length).to.equal(1);
   });
 
+  it('shows only the enable checkbox (no min/max) for presence mods with no numeric value', () => {
+    service.filters = [];
+
+    container.insertAdjacentHTML(
+      'afterbegin',
+      '<div class="item-popup__content"><div class="item-mod"><span class="s lc" data-field="stat.explicit.stat_4000000000">Cannot be Ignited</span></div></div>'
+    );
+    const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
+
+    service.enhance(itemElement);
+
+    const wrapper = itemElement.querySelector('.bt-apply-stat-filter') as HTMLElement;
+    expect(wrapper).to.be.an('HTMLElement'); // still filterable by presence
+    expect(wrapper.querySelectorAll('input[data-bound]').length).to.equal(0); // no min/max
+    expect(wrapper.querySelectorAll('.bt-apply-stat-filter-enabled').length).to.equal(1); // checkbox only
+  });
+
   it('pre-fills from the current filter value when that filter is already set', () => {
     const filterMin = window.document.createElement('input');
     filterMin.value = '17';
