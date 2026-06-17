@@ -19,6 +19,10 @@ const MODS_SELECTOR = '.explicitMod,.pseudoMod,.item-mod--explicit,.item-mod--ps
 // local/global variant), far more reliable than matching on display text.
 const STAT_FIELD_SELECTOR = '[data-field^="stat."]';
 const ROLLED_VALUE_PATTERN = /[+\-]?\d+(?:\.\d+)?/;
+// trade2 shows a rolled mod's value range in its left label, e.g. "P6 [6—13]".
+// Its presence means the mod is min/max-scalable; a fixed mod (e.g. "[1] ... every 4
+// seconds") has no range and can only be filtered by presence.
+const ROLL_RANGE_PATTERN = /\[\s*[+\-]?\d+(?:\.\d+)?\s*[—–-]\s*[+\-]?\d+(?:\.\d+)?\s*\]/;
 const TRADE_SEARCH_API = '/api/trade2/search/poe2';
 
 interface InjectedControl {
@@ -115,9 +119,12 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
 
       const statId = field.replace(/^stat\./, '');
       const statText = valueSpan.textContent || '';
-      // Mods with no numeric value (e.g. "Cannot be Ignited") can only be filtered
-      // by presence — show just the enable checkbox, no min/max.
-      const scalable = ROLLED_VALUE_PATTERN.test(statText);
+      // Scalable only when the mod is a rolled mod (its left label shows a value
+      // range) or a pseudo total. Fixed mods (e.g. "Cannot be Ignited", or
+      // "...every 4 seconds" labelled "[1]") get a presence-only checkbox.
+      const leftLabel = modElement.querySelector<HTMLElement>('.lc.l')?.textContent || '';
+      const isPseudo = modElement.classList.contains('item-mod--pseudo') || modElement.classList.contains('pseudoMod');
+      const scalable = isPseudo || ROLL_RANGE_PATTERN.test(leftLabel);
 
       // If this stat is already filtered in the current search, pre-fill from that
       // filter's value and pre-enable it; otherwise default min to the item's roll.

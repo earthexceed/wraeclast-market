@@ -80,6 +80,24 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     expect(wrapper.querySelectorAll('.bt-apply-stat-filter-enabled').length).to.equal(1); // checkbox only
   });
 
+  it('treats a fixed-value mod (numeric but no roll range) as presence-only', () => {
+    service.activeFilters = {};
+
+    // Has a number ("4") but the left label is "[1]" (no range) → not scalable.
+    container.insertAdjacentHTML(
+      'afterbegin',
+      '<div class="item-popup__content"><div class="item-mod item-mod--explicit"><span class="lc l">[1]</span><span class="s lc" data-field="stat.explicit.stat_4100000000">Create a Fragment of Divinity in your Presence every 4 seconds</span></div></div>'
+    );
+    const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
+
+    service.enhance(itemElement);
+
+    const wrapper = itemElement.querySelector('.bt-apply-stat-filter') as HTMLElement;
+    expect(wrapper).to.be.an('HTMLElement');
+    expect(wrapper.querySelectorAll('input[data-bound]').length).to.equal(0); // no min/max
+    expect(wrapper.querySelectorAll('.bt-apply-stat-filter-enabled').length).to.equal(1);
+  });
+
   it('pre-fills from + pre-enables a stat already filtered in the current search (by id)', () => {
     // crit mod's data-field is stat.explicit.stat_587431675
     service.activeFilters = {'explicit.stat_587431675': {min: 17, max: 40}};
