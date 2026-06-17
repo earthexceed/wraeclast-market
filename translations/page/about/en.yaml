@@ -7,6 +7,7 @@ page:
       highlight-stat-filters: Highlight searched mods
       maximum-sockets: Warning for armors that cannot be 6-socketed
       regroup-similars: Regroup similar results
+      apply-stat-filter: Apply stat filters from results
     github:
       title: On GitHub
       description: To contribute, report issues or simply browse the code.

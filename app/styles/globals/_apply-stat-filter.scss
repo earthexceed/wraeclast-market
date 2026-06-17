@@ -1,0 +1,22 @@
+.bt-apply-stat-filter {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 8px;
+  vertical-align: middle;
+
+  input {
+    width: 48px;
+    padding: 0 4px;
+    font-size: 11px;
+    line-height: 18px;
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid #4d4d4d;
+    border-radius: 2px;
+  }
+}
+
+.bt-apply-stat-filter-button {
+  display: block;
+  margin: 6px auto 2px;
+}
