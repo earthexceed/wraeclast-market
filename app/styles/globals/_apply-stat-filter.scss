@@ -1,8 +1,13 @@
 .bt-apply-stat-filter {
   display: inline-flex;
   gap: 4px;
-  margin-left: 8px;
-  vertical-align: middle;
+  align-items: center;
+  // Pin to the right edge of the mod row so every row's controls line up
+  // (the mod text stays centred — the controls are out of flow).
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .bt-apply-stat-filter-field {
@@ -133,5 +138,5 @@
 
 .bt-apply-stat-filter-button {
   display: block;
-  margin: 6px auto 2px;
+  margin: 6px 6px 2px auto; // right-aligned, in line with the control column
 }

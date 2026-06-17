@@ -86,6 +86,7 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       const maxValue = (existing && existing.maxInput && existing.maxInput.value) || '';
 
       const control = this.renderControl(minValue, maxValue);
+      modElement.style.position = 'relative'; // anchor the right-aligned control
       modElement.appendChild(control.wrapper);
       controls.push({statId, minInput: control.minInput, maxInput: control.maxInput, enabledInput: control.enabledInput});
     });
