@@ -64,6 +64,25 @@ describe('Unit | Services | ItemResults | Enhancers | EquivalentPricings', () =>
       );
     });
 
+    it('should display PoE2 equivalents for the other reference currencies', () => {
+      service.chaosRatios = null;
+      service.poe2Ratios = {
+        'exalted-orb': {value: 1, icon: 'https://cdn/exalted.png'},
+        'divine-orb': {value: 200, icon: 'https://cdn/divine.png'},
+        'chaos-orb': {value: 0.5, icon: 'https://cdn/chaos.png'},
+        'orb-of-annulment': {value: 10, icon: 'https://cdn/annul.png'},
+      };
+
+      resultsContainer.insertAdjacentHTML('afterbegin', FlushDivineElement);
+      const itemElement = resultsContainer.querySelector('div') as HTMLDivElement;
+      const parsedItem = itemElementService.parseElement(itemElement);
+      service.enhance(itemElement, parsedItem);
+
+      const priceElement = resultsContainer.querySelector('.details .price') as HTMLDivElement;
+      // priced at 1 Divine (=200 reference units): show Exalted, Chaos, Annulment, skip Divine
+      expect(priceElement.innerText.trim()).to.equal('Exact Price: 1×Divine Orb=200×=400×=20×');
+    });
+
     it('should also display the non-chaos fraction if the result is not flush', () => {
       resultsContainer.insertAdjacentHTML('afterbegin', FractionDivineElement);
       const itemElement = resultsContainer.querySelector('div') as HTMLDivElement;

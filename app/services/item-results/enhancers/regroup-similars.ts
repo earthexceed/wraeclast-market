@@ -37,7 +37,8 @@ export default class RegroupSimilars extends Service implements ItemResultsEnhan
       .querySelector('.profile-link [href]')
       ?.getAttribute('href')
       ?.replace(/^\/account\/view-profile\//, '');
-    const itemName = result.querySelector('.itemHeader')?.textContent?.replace(/superior/i, '');
+    // PoE1 trade uses `.itemHeader`; PoE2 trade2 renamed it to `.item-popup__header`.
+    const itemName = result.querySelector('.itemHeader, .item-popup__header')?.textContent?.replace(/superior/i, '');
     const price = result.querySelector('.price')?.textContent;
 
     const hash = btoa(

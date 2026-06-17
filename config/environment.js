@@ -34,7 +34,7 @@ module.exports = function (environment) {
     imageResourcePrefix: environment === 'development' ? 'ember-build/assets/images' : 'assets/images',
     discordUrl: 'http://discord.exile.center',
     tftDiscordUrl: 'https://discord.gg/tftrove',
-    githubUrl: 'https://github.com/exile-center/better-trading',
+    githubUrl: 'https://github.com/earthexceed/wraeclast-market',
     chaosRecipeOverlayUrl: 'https://github.com/exile-center/chaos-recipe-overlay',
     browser: process.env.TARGET_BROWSER || 'chrome',
     locationPollingIntervalInMilliseconds: 500,

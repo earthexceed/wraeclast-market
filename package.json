@@ -1,17 +1,17 @@
 {
   "name": "better-trading",
-  "version": "1.9.2",
-  "changelog": "1-9-2-mercenaries-2",
+  "version": "2.0.0",
+  "changelog": "poe2-fork",
   "private": true,
   "directories": {
     "doc": "doc",
     "test": "tests"
   },
   "manifest": {
-    "name": "Better PathOfExile Trading",
-    "description": ""
+    "name": "Wraeclast Market — PoE & PoE2 Trade Tool",
+    "description": "PoE & PoE2 trade-site tools: bookmarks, equivalent prices (poe.ninja), searched-mod highlighting, stat filters and more."
   },
-  "repository": "https://github.com/poe-world/better-trading",
+  "repository": "https://github.com/earthexceed/wraeclast-market",
   "engine-strict": true,
   "engines": {
     "node": "~12.22",

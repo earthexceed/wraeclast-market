@@ -2,6 +2,7 @@
 import {expect} from 'chai';
 import {setupTest} from 'ember-mocha';
 import {beforeEach, afterEach, describe, it} from 'mocha';
+import window from 'ember-window-mock';
 
 // HTML Samples
 import AnonItem from 'better-trading/tests/html-samples/search-panel/anon-ele-res-max-life';

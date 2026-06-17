@@ -31,22 +31,18 @@
       </ul>
 
       <ul local-class="icon-options with-ascendancies">
-        {{#each this.iconAscendancyOptions as |ascendancyOptions|}}
-          <li>
-            <ul local-class="icon-options">
-              {{#each ascendancyOptions as |ascendancyOption|}}
-                <li
-                  {{on "click" (fn this.toggleIcon ascendancyOption.value)}}
-                  local-class="icon-option {{if (eq ascendancyOption.value this.folder.icon) "is-selected"}}"
-                >
-                  <img
-                    local-class="icon-option-image"
-                    src={{image-resource-url ascendancyOption.imagePath}}
-                    alt={{ascendancyOption.value}}
-                  >
-                </li>
-              {{/each}}
-            </ul>
+        {{#each this.iconAscendancyOptions as |ascendancyOption|}}
+          <li
+            {{on "click" (fn this.toggleIcon ascendancyOption.value)}}
+            local-class="icon-option is-named {{if (eq ascendancyOption.value this.folder.icon) "is-selected"}}"
+            title={{ascendancyOption.label}}
+          >
+            <img
+              local-class="icon-option-image"
+              src={{image-resource-url ascendancyOption.imagePath}}
+              alt={{ascendancyOption.label}}
+            >
+            <span local-class="icon-option-label">{{ascendancyOption.label}}</span>
           </li>
         {{/each}}
       </ul>
