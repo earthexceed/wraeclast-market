@@ -83,6 +83,38 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     expect(max.value).to.equal('40');
   });
 
+  it('steps the value with the custom up/down spinners and clamps at zero', () => {
+    service.filters = [
+      {
+        text: '#% increased critical hit chance',
+        needle: new RegExp('[\\+\\-]?\\d+% increased critical hit chance', 'i'),
+        minInput: window.document.createElement('input'),
+        maxInput: window.document.createElement('input'),
+      },
+    ];
+
+    container.insertAdjacentHTML(
+      'afterbegin',
+      '<div class="item-popup__content"><div class="item-mod"><span class="s lc">1% increased Critical Hit Chance</span></div></div>'
+    );
+    const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
+
+    service.enhance(itemElement);
+
+    const field = itemElement.querySelector('.bt-apply-stat-filter-field') as HTMLElement;
+    const min = field.querySelector('input[data-bound="min"]') as HTMLInputElement;
+    const up = field.querySelector('.bt-apply-stat-filter-spinner-up') as HTMLButtonElement;
+    const down = field.querySelector('.bt-apply-stat-filter-spinner-down') as HTMLButtonElement;
+
+    expect(min.value).to.equal('1');
+    up.click();
+    expect(min.value).to.equal('2');
+    down.click();
+    down.click();
+    down.click();
+    expect(min.value).to.equal('0'); // clamped, never negative
+  });
+
   it('on Apply, writes each control value to its filter inputs and clicks Search once', () => {
     const filterMin = window.document.createElement('input');
     const filterMax = window.document.createElement('input');

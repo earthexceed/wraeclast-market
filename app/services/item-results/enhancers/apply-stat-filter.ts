@@ -72,22 +72,49 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     const wrapper = window.document.createElement('span');
     wrapper.classList.add('bt-apply-stat-filter');
 
-    const minInput = window.document.createElement('input');
-    minInput.type = 'number';
-    minInput.placeholder = 'min';
-    minInput.dataset.bound = 'min';
-    minInput.value = minValue;
+    const min = this.renderField('min', minValue);
+    const max = this.renderField('max', maxValue);
 
-    const maxInput = window.document.createElement('input');
-    maxInput.type = 'number';
-    maxInput.placeholder = 'max';
-    maxInput.dataset.bound = 'max';
-    maxInput.value = maxValue;
+    wrapper.appendChild(min.field);
+    wrapper.appendChild(max.field);
 
-    wrapper.appendChild(minInput);
-    wrapper.appendChild(maxInput);
+    return {wrapper, minInput: min.input, maxInput: max.input};
+  }
 
-    return {wrapper, minInput, maxInput};
+  private renderField(bound: 'min' | 'max', value: string): {field: HTMLElement; input: HTMLInputElement} {
+    const field = window.document.createElement('span');
+    field.classList.add('bt-apply-stat-filter-field');
+
+    const input = window.document.createElement('input');
+    input.type = 'number';
+    input.placeholder = bound;
+    input.dataset.bound = bound;
+    input.value = value;
+
+    const spinners = window.document.createElement('span');
+    spinners.classList.add('bt-apply-stat-filter-spinners');
+    spinners.appendChild(this.renderSpinner('up', () => this.stepValue(input, 1)));
+    spinners.appendChild(this.renderSpinner('down', () => this.stepValue(input, -1)));
+
+    field.appendChild(input);
+    field.appendChild(spinners);
+
+    return {field, input};
+  }
+
+  private renderSpinner(direction: 'up' | 'down', onClick: () => void): HTMLButtonElement {
+    const button = window.document.createElement('button');
+    button.type = 'button';
+    button.classList.add('bt-apply-stat-filter-spinner', `bt-apply-stat-filter-spinner-${direction}`);
+    button.addEventListener('click', onClick);
+
+    return button;
+  }
+
+  private stepValue(input: HTMLInputElement, delta: number) {
+    const current = parseInt(input.value, 10);
+    const next = (Number.isNaN(current) ? 0 : current) + delta;
+    input.value = String(Math.max(0, next));
   }
 
   private renderApplyButton(controls: InjectedControl[]): HTMLElement {

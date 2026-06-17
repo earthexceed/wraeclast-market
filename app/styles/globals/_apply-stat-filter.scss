@@ -1,19 +1,88 @@
 .bt-apply-stat-filter {
   display: inline-flex;
-  gap: 2px;
+  gap: 4px;
   margin-left: 8px;
   vertical-align: middle;
+}
+
+.bt-apply-stat-filter-field {
+  display: inline-flex;
+  align-items: stretch;
+  height: 20px;
+  background-color: rgba(0, 0, 0, 0.45);
+  border: 1px solid #6b6147;
+  border-radius: 3px;
+  overflow: hidden;
 
   input {
-    width: 48px;
+    width: 38px;
     padding: 0 4px;
     font-size: 11px;
     line-height: 18px;
     color: #fff;
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 1px solid #4d4d4d;
-    border-radius: 2px;
+    background: transparent;
+    border: 0;
+    // Hide the clunky native number spinner — we render our own below.
+    -moz-appearance: textfield;
+    appearance: textfield;
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    &:focus {
+      outline: none;
+    }
   }
+}
+
+.bt-apply-stat-filter-spinners {
+  display: flex;
+  flex-direction: column;
+  width: 15px;
+  border-left: 1px solid #6b6147;
+}
+
+.bt-apply-stat-filter-spinner {
+  position: relative;
+  flex: 1;
+  padding: 0;
+  border: 0;
+  background-color: rgba(120, 100, 60, 0.25);
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba(200, 170, 90, 0.5);
+  }
+
+  &:active {
+    background-color: rgba(230, 200, 115, 0.65);
+  }
+
+  // CSS triangle arrow, gold to match the trade theme.
+  &::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+  }
+}
+
+.bt-apply-stat-filter-spinner-up {
+  border-bottom: 1px solid #6b6147;
+
+  &::before {
+    border-bottom: 4px solid #e8c873;
+  }
+}
+
+.bt-apply-stat-filter-spinner-down::before {
+  border-top: 4px solid #e8c873;
 }
 
 .bt-apply-stat-filter-button {
