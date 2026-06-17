@@ -19,3 +19,6 @@ testem.log
 
 # env
 .env
+
+# local working artifacts (logo/icon backups, previews)
+/.logo-backup
