@@ -6,7 +6,7 @@ PoE & PoE2 fork of **Better Trading** (Chrome extension that enhances pathofexil
 
 ## Current state (TL;DR)
 
-All work this session is on branch **`feat/poe2-equivalent-pricings`** → open as **[PR #1](https://github.com/earthexceed/better-trading-poe2/pull/1)** (base `master` on the `earthexceed` fork, retitled "Wraeclast Market v2.0.0 — …"). Working tree clean; everything committed + pushed (HEAD `309b785`). GitHub repo description + topics updated to Wraeclast Market (repo *name* still `better-trading-poe2` — would need a GitHub Settings rename).
+All work this session is on branch **`feat/poe2-equivalent-pricings`** → open as **[PR #1](https://github.com/earthexceed/better-trading-poe2/pull/1)** (base `master` on the `earthexceed` fork, retitled "Wraeclast Market v2.0.0 — …"). Working tree clean; everything committed + pushed (HEAD `309b785`). GitHub repo description + topics updated to Wraeclast Market; repo **renamed to `wraeclast-market`** (`githubUrl`, `package.json` repository + remote URL all updated to `earthexceed/wraeclast-market`).
 
 | Area | Status |
 |---|---|
@@ -61,5 +61,5 @@ Authoritative roster lives in the sibling repo `C:/Project/codex-wiki/poe2` → 
 1. Confirm the modal Save fix in-browser (reload).
 2. Confirm Apply Stat Filter end-to-end (local/global + checkbox pre-enable).
 3. The icon-picker grid columns look slightly ragged (per-class vertical stacks in an auto-fill grid); optional: add per-class header labels or tidy the grid if the user wants.
-4. PR #1 is ready for review/merge (already at v2.0.0). Optional GitHub Settings rename of the repo `better-trading-poe2` → a Wraeclast-Market slug (breaks the remote URL — coordinate first).
+4. PR #1 is ready for review/merge (already at v2.0.0).
 5. Planned: **PoE1 support** — the user intends to build this out next.

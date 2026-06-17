@@ -11,7 +11,7 @@
     "name": "Wraeclast Market — PoE & PoE2 Trade Tool",
     "description": "PoE & PoE2 trade-site tools: bookmarks, equivalent prices (poe.ninja), searched-mod highlighting, stat filters and more."
   },
-  "repository": "https://github.com/earthexceed/better-trading-poe2",
+  "repository": "https://github.com/earthexceed/wraeclast-market",
   "engine-strict": true,
   "engines": {
     "node": "~12.22",
