@@ -12,4 +12,5 @@
 - **Apply stat filters** now also detects scalable "Adds X to Y" rolls (e.g. "Adds 1 to 232 Lightning Damage"), which previously showed no min/max boxes.
 - Bookmark-folder icon picker: ascendancy portraits now fill a clean, even grid instead of ragged per-class columns.
 - The bookmark-folder modal stays within the viewport and scrolls internally, so the Save button is always reachable.
+- **Apply stat filters** no longer fetches the current search on every page load. It now reads the active filters lazily — only the first time you actually use a filter control — so normal browsing adds no extra trade requests and is far less likely to trip Path of Exile's "Rate limit exceeded" warning.
 - Silenced the harmless "Extension context invalidated" console spam on reload/auto-update.

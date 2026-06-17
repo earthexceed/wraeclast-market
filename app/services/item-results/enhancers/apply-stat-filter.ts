@@ -35,6 +35,7 @@ interface InjectedControl {
   minInput?: HTMLInputElement;
   maxInput?: HTMLInputElement;
   enabledInput: HTMLInputElement;
+  wrapper: HTMLElement;
 }
 
 interface StatFilterValue {
@@ -75,19 +76,54 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
   activeFilters: Record<string, StatFilterValue> = {};
 
   private cachedSlug: string | null = null;
+  // Whether we've already fetched the active filters for the current search.
+  private activeFiltersFetched = false;
+  // Every control rendered for the current search, so a deferred active-filters
+  // fetch can back-fill them once the user actually engages the filter UI.
+  private pageControls: InjectedControl[] = [];
 
-  async prepare() {
-    const slug = this.tradeLocation.slug;
-    if (!slug) {
-      this.activeFilters = {};
-      this.cachedSlug = null;
-      return;
-    }
-    if (slug === this.cachedSlug) return; // same search — reuse
+  // NOTE: intentionally does NOT hit the network. The trade2 page already fetches
+  // the current search when it loads, and GGG's rate limits are strict — issuing a
+  // duplicate GET on every search would burn the user's quota twice as fast and
+  // trigger "Rate limit exceeded". We instead defer the fetch until the user first
+  // interacts with an injected control (see ensureActiveFilters), so passive
+  // browsing adds zero extra trade2 requests.
+  prepare() {
+    const slug = this.tradeLocation.slug || null;
+    if (slug === this.cachedSlug) return; // same search — keep state
+
+    this.cachedSlug = slug;
+    this.activeFilters = {};
+    this.activeFiltersFetched = false;
+    this.pageControls = [];
+  }
+
+  // Fetch the current search's active filters at most once per search, lazily, and
+  // back-fill the already-rendered controls (pre-enable + pre-fill mods that are
+  // part of the current filter). Triggered by the first user interaction.
+  private async ensureActiveFilters() {
+    if (this.activeFiltersFetched) return;
+    this.activeFiltersFetched = true; // optimistic: avoid concurrent fetches
+
+    const slug = this.cachedSlug;
+    if (!slug) return;
 
     const encodedLeague = encodeURIComponent(poe2LeagueName(this.tradeLocation.league || ''));
     this.activeFilters = await this.fetchActiveFilters(encodedLeague, slug);
-    this.cachedSlug = slug;
+
+    this.pageControls.forEach((control) => {
+      const active = this.activeFilters[control.statId];
+      if (!active) return;
+      // Don't clobber anything the user has already typed.
+      if (control.minInput && active.min !== undefined && control.minInput.dataset.btTouched !== 'true') {
+        control.minInput.value = String(active.min);
+      }
+      if (control.maxInput && active.max !== undefined && control.maxInput.dataset.btTouched !== 'true') {
+        control.maxInput.value = String(active.max);
+      }
+      control.enabledInput.checked = true;
+      control.wrapper.classList.add('bt-is-enabled');
+    });
   }
 
   private async fetchActiveFilters(encodedLeague: string, slug: string): Promise<Record<string, StatFilterValue>> {
@@ -130,20 +166,35 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       const isPseudo = modElement.classList.contains('item-mod--pseudo') || modElement.classList.contains('pseudoMod');
       const scalable = isPseudo || ROLL_RANGE_PATTERN.test(leftLabel);
 
-      // If this stat is already filtered in the current search, pre-fill from that
-      // filter's value and pre-enable it; otherwise default min to the item's roll.
-      const active = this.activeFilters[statId];
-      const minValue = active && active.min !== undefined ? String(active.min) : scalable ? this.rolledValue(statText) : '';
-      const maxValue = active && active.max !== undefined ? String(active.max) : '';
+      // Default min to the item's roll. Pre-enabling mods that are already part of
+      // the current search happens lazily in ensureActiveFilters (so we don't issue
+      // a trade2 request just to render the page).
+      const minValue = scalable ? this.rolledValue(statText) : '';
 
-      const control = this.renderControl(scalable, minValue, maxValue);
-      if (active) {
-        control.enabledInput.checked = true;
-        control.wrapper.classList.add('bt-is-enabled');
-      }
+      const control = this.renderControl(scalable, minValue, '');
+
+      // The first time the user touches any control, fetch the active filters once
+      // and back-fill them; mark inputs as touched so that back-fill never overwrites
+      // a value the user has typed.
+      control.wrapper.addEventListener('focusin', () => {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        this.ensureActiveFilters();
+      });
+      [control.minInput, control.maxInput].forEach((input) => {
+        if (input) input.addEventListener('input', () => (input.dataset.btTouched = 'true'));
+      });
+
       modElement.style.position = 'relative'; // anchor the right-aligned control
       modElement.appendChild(control.wrapper);
-      controls.push({statId, minInput: control.minInput, maxInput: control.maxInput, enabledInput: control.enabledInput});
+      const injected: InjectedControl = {
+        statId,
+        minInput: control.minInput,
+        maxInput: control.maxInput,
+        enabledInput: control.enabledInput,
+        wrapper: control.wrapper,
+      };
+      controls.push(injected);
+      this.pageControls.push(injected);
       lastControlledMod = modElement;
       if (!firstWrapper && scalable) firstWrapper = control.wrapper; // size the button to a full control
     });
