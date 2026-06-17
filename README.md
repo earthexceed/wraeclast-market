@@ -19,9 +19,14 @@ In the meantime, you can continue to use version [1.3.2 on Firefox](https://addo
 
 ## Features
 
-- Bookmarks manager
+- Works on both **Path of Exile** and **Path of Exile 2** trade sites
+- Bookmarks manager — organize searches into folders with class / currency icons
 - Equivalent pricing calculator (powered by [poe.ninja](https://poe.ninja/))
 - Searched mods highlighting
+- **Apply stat filters from results** — inline min/max inputs + one-click Apply
+- Regroup similar results
+- Pin items & search history
+- Warning for armours that cannot be 6-socketed (PoE 1 only)
 - ... more to come !
 
 ## Contributing
