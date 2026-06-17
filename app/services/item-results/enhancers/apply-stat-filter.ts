@@ -4,7 +4,6 @@ import window from 'ember-window-mock';
 
 // Types
 import SearchPanel, {ActiveStatFilter} from 'better-trading/services/search-panel';
-import StatFilterData, {normalizeStatText} from 'better-trading/services/stat-filter-data';
 import TradeLocation from 'better-trading/services/trade-location';
 import {poe2LeagueName} from 'better-trading/services/poe-ninja';
 import {ItemResultsEnhancerService} from 'better-trading/types/item-results';
@@ -13,7 +12,10 @@ import FlashMessages from 'ember-cli-flash/services/flash-messages';
 
 // Constants
 const MODS_SELECTOR = '.explicitMod,.pseudoMod,.implicitMod,.item-mod';
-const VALUE_SPAN_SELECTOR = '.s';
+// trade2 tags each mod's value span with its exact stat id, e.g.
+// data-field="stat.explicit.stat_2482852589" — this is the real id (correct
+// local/global variant), far more reliable than matching on display text.
+const STAT_FIELD_SELECTOR = '[data-field^="stat."]';
 const ROLLED_VALUE_PATTERN = /[+\-]?\d+(?:\.\d+)?/;
 const TRADE_SEARCH_API = '/api/trade2/search/poe2';
 
@@ -48,9 +50,6 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
   @service('search-panel')
   searchPanel: SearchPanel;
 
-  @service('stat-filter-data')
-  statFilterData: StatFilterData;
-
   @service('trade-location')
   tradeLocation: TradeLocation;
 
@@ -62,30 +61,27 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
 
   slug = 'apply-stat-filter';
 
-  statIdMap: Record<string, string> = {};
-
   filters: ActiveStatFilter[] = [];
 
-  async prepare() {
-    this.statIdMap = await this.statFilterData.getStatIdMap();
+  prepare() {
+    // Only used to pre-fill inputs from filters the user has already set.
     this.filters = this.searchPanel.getActiveStatFilters();
   }
 
   enhance(itemElement: HTMLElement) {
-    if (Object.keys(this.statIdMap).length === 0) return;
-
     const modElements = itemElement.querySelectorAll<HTMLElement>(MODS_SELECTOR);
     const controls: InjectedControl[] = [];
 
     modElements.forEach((modElement) => {
-      const valueSpan = modElement.querySelector<HTMLElement>(VALUE_SPAN_SELECTOR) || modElement;
-      const statText = valueSpan.textContent || '';
-      const statId = this.statIdMap[normalizeStatText(statText)];
-      if (!statId) return;
+      const valueSpan = modElement.querySelector<HTMLElement>(STAT_FIELD_SELECTOR);
+      const field = valueSpan && valueSpan.dataset.field;
+      if (!valueSpan || !field) return;
+
+      const statId = field.replace(/^stat\./, '');
 
       // Pre-fill from the current filter's value when set, else the item's rolled value.
       const existing = this.filters.find((candidate) => candidate.needle.test(modElement.textContent || ''));
-      const minValue = (existing && existing.minInput.value) || this.rolledValue(statText);
+      const minValue = (existing && existing.minInput.value) || this.rolledValue(valueSpan.textContent || '');
       const maxValue = (existing && existing.maxInput && existing.maxInput.value) || '';
 
       const control = this.renderControl(minValue, maxValue);

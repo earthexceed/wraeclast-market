@@ -1,7 +1,19 @@
 # Apply Stat Filter — API-Driven (v2) Design
 
 Date: 2026-06-17
-Status: Approved (supersedes the apply mechanism in 2026-06-17-inline-apply-stat-filter-design.md)
+Status: Implemented (supersedes the apply mechanism in 2026-06-17-inline-apply-stat-filter-design.md)
+
+## Revision (during verification): use `data-field`, drop the stats fetch
+
+Browser testing surfaced a local-vs-global bug: text-normalize + match against
+`/api/trade2/data/stats` mapped "292% increased Evasion Rating" to the GLOBAL stat,
+but on body armour the correct filter is the LOCAL variant. trade2 already tags each
+mod's value span with its exact id: `data-field="stat.explicit.stat_2482852589"`.
+The implementation now reads the stat id straight from `data-field` (strip the `stat.`
+prefix) — the real id, correct local/global/pseudo variant, no ambiguity. This makes
+the `/api/trade2/data/stats` fetch, the `normalizeStatText` helper, and the
+`stat-filter-data` service unnecessary; they were removed. The query-merge + POST +
+navigate flow below is unchanged.
 
 ## Why
 

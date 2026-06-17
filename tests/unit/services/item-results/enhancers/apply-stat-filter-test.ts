@@ -7,7 +7,9 @@ import {beforeEach, afterEach, describe, it} from 'mocha';
 // Types
 import ApplyStatFilter from 'better-trading/services/item-results/enhancers/apply-stat-filter';
 
-const CRIT_STAT = '#% increased Critical Hit Chance';
+// A mod whose value span carries trade2's real stat id in data-field.
+const critMod = (value: string) =>
+  `<div class="item-mod"><span class="lc l">S1 [5—15]</span><span class="s lc" data-field="stat.explicit.stat_587431675">${value} increased Critical Hit Chance</span></div>`;
 
 describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
   setupTest();
@@ -24,16 +26,16 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
 
   afterEach(() => container.remove());
 
-  it('injects min/max inputs only on mods whose normalized text maps to a stat id, defaulting min to the rolled value', () => {
-    service.statIdMap = {[CRIT_STAT]: 'explicit.stat_587431675'};
+  it('injects min/max inputs only on mods that carry a stat id, defaulting min to the rolled value', () => {
     service.filters = [];
 
     container.insertAdjacentHTML(
       'afterbegin',
       [
         '<div class="item-popup__content">',
-        '  <div class="item-mod"><span class="lc l">S1 [5—15]</span><span class="s lc">14% increased Critical Hit Chance</span></div>',
-        '  <div class="item-mod"><span class="lc l">P1 [10—20]</span><span class="s lc">10% increased Ignite Magnitude</span></div>',
+        critMod('14%'),
+        // no data-field => not a stat-filterable mod => no inputs
+        '  <div class="item-mod"><span class="s lc">Allocates a Notable Passive</span></div>',
         '</div>',
       ].join('')
     );
@@ -42,7 +44,7 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     service.enhance(itemElement);
 
     const controls = itemElement.querySelectorAll('.bt-apply-stat-filter');
-    expect(controls.length).to.equal(1); // only the mapped crit mod, not Ignite Magnitude
+    expect(controls.length).to.equal(1);
     const min = controls[0].querySelector('input[data-bound="min"]') as HTMLInputElement;
     const max = controls[0].querySelector('input[data-bound="max"]') as HTMLInputElement;
     expect(min.value).to.equal('14');
@@ -51,7 +53,6 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
   });
 
   it('pre-fills from the current filter value when that filter is already set', () => {
-    service.statIdMap = {[CRIT_STAT]: 'explicit.stat_587431675'};
     const filterMin = window.document.createElement('input');
     filterMin.value = '17';
     const filterMax = window.document.createElement('input');
@@ -65,10 +66,7 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
       },
     ];
 
-    container.insertAdjacentHTML(
-      'afterbegin',
-      '<div class="item-popup__content"><div class="item-mod"><span class="s lc">19% increased Critical Hit Chance</span></div></div>'
-    );
+    container.insertAdjacentHTML('afterbegin', `<div class="item-popup__content">${critMod('19%')}</div>`);
     const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
 
     service.enhance(itemElement);
@@ -81,13 +79,9 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
   });
 
   it('steps the value with the custom up/down spinners and clamps at zero', () => {
-    service.statIdMap = {[CRIT_STAT]: 'explicit.stat_587431675'};
     service.filters = [];
 
-    container.insertAdjacentHTML(
-      'afterbegin',
-      '<div class="item-popup__content"><div class="item-mod"><span class="s lc">1% increased Critical Hit Chance</span></div></div>'
-    );
+    container.insertAdjacentHTML('afterbegin', `<div class="item-popup__content">${critMod('1%')}</div>`);
     const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
 
     service.enhance(itemElement);
