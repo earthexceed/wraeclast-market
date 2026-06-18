@@ -1,28 +1,27 @@
-// Mods matching an active stat filter get a vivid red highlight with a slow
-// pulsing glow + a red accent bar on the left edge, so they stand out at a glance.
+// Mods matching an active stat filter get a calm, muted red highlight with a red
+// accent bar on the left. A single soft glow plays once when the highlight first
+// appears, then settles — eye-catching without the fatigue of a constant pulse.
 .bt-highlight-stat-filters {
-  background-color: rgba(214, 40, 40, 0.28);
-  box-shadow: inset 3px 0 0 0 #ff5252;
-  animation: bt-highlight-pulse 1.8s ease-in-out infinite;
+  background-color: rgba(198, 48, 48, 0.16);
+  box-shadow: inset 3px 0 0 0 #d64545;
+  animation: bt-highlight-in 0.6s ease-out;
 }
 
-@keyframes bt-highlight-pulse {
-  0%,
-  100% {
-    background-color: rgba(214, 40, 40, 0.2);
-    box-shadow: inset 3px 0 0 0 #ff5252, inset 0 0 6px rgba(255, 80, 80, 0.15);
+@keyframes bt-highlight-in {
+  from {
+    background-color: rgba(230, 60, 60, 0.34);
+    box-shadow: inset 3px 0 0 0 #e35b5b, inset 0 0 12px rgba(255, 90, 90, 0.3);
   }
 
-  50% {
-    background-color: rgba(235, 55, 55, 0.42);
-    box-shadow: inset 3px 0 0 0 #ff6b6b, inset 0 0 16px rgba(255, 90, 90, 0.5);
+  to {
+    background-color: rgba(198, 48, 48, 0.16);
+    box-shadow: inset 3px 0 0 0 #d64545, inset 0 0 0 rgba(255, 90, 90, 0);
   }
 }
 
-// Respect users who prefer reduced motion: keep the red highlight, drop the pulse.
+// Respect users who prefer reduced motion: just the steady red, no entrance glow.
 @media (prefers-reduced-motion: reduce) {
   .bt-highlight-stat-filters {
     animation: none;
-    background-color: rgba(214, 40, 40, 0.32);
   }
 }
