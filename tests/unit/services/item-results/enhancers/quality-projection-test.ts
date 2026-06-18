@@ -204,6 +204,20 @@ describe('Unit | Services | ItemResults | Enhancers | QualityProjection', () => 
       expect(row.querySelectorAll('.bt-quality-projection').length).to.equal(0);
     });
 
+    it('does not project a typed quality that may not scale this stat', () => {
+      const row = window.document.createElement('div');
+      row.innerHTML = `
+        <div class="item-property"><span data-field="quality"><span>Quality (Attribute Modifiers)</span>: <span>+5%</span></span></div>
+        <div class="item-property"><span data-field="pdamage"><span>Physical Damage</span>: <span>141-211</span></span></div>
+        <div class="item-mod">151% increased Physical Damage</div>
+      `;
+      container.appendChild(row);
+
+      service.enhance(row);
+
+      expect(row.querySelectorAll('.bt-quality-projection').length).to.equal(0);
+    });
+
     it('does not double-inject on a second enhance pass', () => {
       const row = weaponRow({quality: 0, pdamage: '141-211', dps: '295.4', pdps: '295.4', mods: ['151% increased Physical Damage']});
       container.appendChild(row);

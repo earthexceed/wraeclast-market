@@ -43,6 +43,18 @@ export const parseQuality = (root: Element): number => {
   return match ? parseInt(match[1], 10) : 0;
 };
 
+// Only the default quality line ("Quality: +N%") scales physical damage / defences.
+// PoE2 can show a *typed* quality (e.g. "Quality (Attribute Modifiers): +N%") that
+// scales something else entirely — projecting it as if it raised physical/defence
+// would mislead, so we don't. An item with no quality line at all is projectable
+// (it's simply at 0% of the default quality).
+const isProjectableQuality = (root: Element): boolean => {
+  const span = root.querySelector('.item-property span[data-field="quality"]');
+  if (!span) return true;
+  const label = (span.textContent || '').split(':')[0];
+  return !label.includes('(');
+};
+
 // projected / current ratio when raising quality to the cap, holding base + other
 // increases (I) fixed: (100 + CAP + I) / (100 + Q + I).
 export const qualityFactor = (quality: number, increased: number): number =>
@@ -114,6 +126,10 @@ export default class QualityProjection extends Service implements ItemResultsEnh
   slug = 'quality-projection';
 
   enhance(itemElement: HTMLElement): void {
+    // Skip typed quality (e.g. "Quality (Attribute Modifiers)") — it may not scale
+    // the physical/defence stats we project.
+    if (!isProjectableQuality(itemElement)) return;
+
     const quality = parseQuality(itemElement);
     if (quality >= QUALITY_CAP) return;
     // The host marks rows [bt-enhanced] so enhance runs once, but guard anyway:

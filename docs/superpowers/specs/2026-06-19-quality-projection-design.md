@@ -185,6 +185,10 @@ Imported from `app/styles/app.scss`.
 
 - **No quality line** ⇒ `Q = 0`, projected from 0 → 20 (the largest gain). Shown.
 - **Quality ≥ 20** ⇒ skipped (no parenthetical).
+- **Typed quality** (e.g. `Quality (Attribute Modifiers): +N%`) ⇒ skipped. Only the
+  default `Quality:` line scales physical damage / defences; a typed quality scales
+  something else, so projecting it as physical/defence would mislead. Detected by a
+  `(` in the quality line's label.
 - **No increased mods** (`I = 0`) ⇒ `factor = (120)/(100+Q)`; still valid (pure
   base item gains the full quality delta).
 - **Caster weapon / off-hand with no physical line and no defence line** ⇒ both
