@@ -5,37 +5,22 @@ import window from 'ember-window-mock';
 // Types
 import {ItemResultsEnhancerService} from 'better-trading/types/item-results';
 
-// Quality on weapons/armour acts as a local "% increased" modifier; everyone caps
-// their gear at 20, so we project to it. Skip anything already at/above the cap.
+// Quality on weapons/armour is a SEPARATE multiplier on the base stat — it does NOT
+// stack additively with "increased" modifiers. So raising quality from the current
+// value Q to the 20% cap scales the displayed value by (100 + CAP) / (100 + Q),
+// independent of any increased% on the item. (Verified against Path of Building: a
+// 0%-quality spear's "194-291" projects to 233-350 = ×1.20, not ×1.0576.)
+//
+// IMPORTANT: the trade2 footer already shows DPS / Physical DPS *at max quality*
+// (the value spans carry title="at max Quality"), so we deliberately do NOT project
+// those — only the Physical Damage range and the armour defence lines are rendered
+// by the site at current quality, so only those get a projection.
 const QUALITY_CAP = 20;
-
-// CSS class stamped on every injected projection span — used for idempotency and
-// styling.
 const PROJECTION_CLASS = 'bt-quality-projection';
 
-// "<n>% increased Physical Damage" — anchored on the phrase so a preceding
-// roll-range label (e.g. "[110—134]") is never captured.
-const PHYS_INCREASE_RE = /(\d+(?:\.\d+)?)%\s*increased\s+Physical\s+Damage/gi;
-// "<n>% increased <defence-token-run>". The token run stops at the tier badge that
-// the rendered text runs into with no separator (e.g. "…EvasionPredator's"), because
-// the badge word matches none of the alternatives. We then attribute the value to
-// every defence keyword the captured phrase contains (handles hybrids).
-const DEFENCE_INCREASE_RE =
-  /(\d+(?:\.\d+)?)%\s*increased\s+((?:Armour|Evasion Rating|Evasion|Energy Shield|Defences|and|,|\s)+)/gi;
-
-export interface DefenceIncreases {
-  ar: number;
-  ev: number;
-  es: number;
-}
-
-const modText = (root: Element): string =>
-  Array.prototype.map.call(root.querySelectorAll('.item-mod'), (m: Element) => m.textContent || '').join('\n');
-
-// Read the item's quality percent (0 when there is no quality line). Anchored on
-// the trailing "%" of the value ("+20%") rather than the first digit run, so a
-// label that itself contains a digit (e.g. "Quality (Tier 3 Modifiers)") can't be
-// mistaken for the value.
+// Read the item's quality percent (0 when there is no quality line). Anchored on the
+// value's trailing "%" rather than the first digit run, so a label that itself
+// contains a digit (e.g. "Quality (Tier 3 Modifiers)") can't be mistaken for it.
 export const parseQuality = (root: Element): number => {
   const span = root.querySelector('.item-property span[data-field="quality"]');
   if (!span) return 0;
@@ -43,11 +28,9 @@ export const parseQuality = (root: Element): number => {
   return match ? parseInt(match[1], 10) : 0;
 };
 
-// Only the default quality line ("Quality: +N%") scales physical damage / defences.
-// PoE2 can show a *typed* quality (e.g. "Quality (Attribute Modifiers): +N%") that
-// scales something else entirely — projecting it as if it raised physical/defence
-// would mislead, so we don't. An item with no quality line at all is projectable
-// (it's simply at 0% of the default quality).
+// Only the default "Quality" line scales physical damage / defences. A typed quality
+// (e.g. "Quality (Attribute Modifiers)") scales something else, so projecting it as
+// physical/defence would mislead. Detected by a "(" in the quality line's label.
 const isProjectableQuality = (root: Element): boolean => {
   const span = root.querySelector('.item-property span[data-field="quality"]');
   if (!span) return true;
@@ -55,55 +38,14 @@ const isProjectableQuality = (root: Element): boolean => {
   return !label.includes('(');
 };
 
-// projected / current ratio when raising quality to the cap, holding base + other
-// increases (I) fixed: (100 + CAP + I) / (100 + Q + I).
-export const qualityFactor = (quality: number, increased: number): number =>
-  (100 + QUALITY_CAP + increased) / (100 + quality + increased);
-
-// Sum every "<n>% increased Physical Damage" value across the item's mod lines.
-export const sumPhysIncreased = (root: Element): number => {
-  const text = modText(root);
-  PHYS_INCREASE_RE.lastIndex = 0;
-  let total = 0;
-  let match: RegExpExecArray | null;
-  while ((match = PHYS_INCREASE_RE.exec(text))) total += parseFloat(match[1]);
-  return total;
-};
-
-// Sum local "% increased" per defence, crediting hybrids to each defence they name.
-export const sumDefenceIncreased = (root: Element): DefenceIncreases => {
-  const text = modText(root);
-  const out: DefenceIncreases = {ar: 0, ev: 0, es: 0};
-  DEFENCE_INCREASE_RE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = DEFENCE_INCREASE_RE.exec(text))) {
-    const value = parseFloat(match[1]);
-    const phrase = match[2];
-    if (/Defences/i.test(phrase)) {
-      out.ar += value;
-      out.ev += value;
-      out.es += value;
-      continue;
-    }
-    if (/Armour/i.test(phrase)) out.ar += value;
-    if (/Evasion/i.test(phrase)) out.ev += value;
-    if (/Energy Shield/i.test(phrase)) out.es += value;
-  }
-  return out;
-};
+// Scale factor that raises the displayed (current-quality) value to the 20% cap.
+export const qualityFactor = (quality: number): number => (100 + QUALITY_CAP) / (100 + quality);
 
 // Property value text is after the colon: "Physical Damage: 141-211" -> "141-211",
 // "Armour: 195" -> "195".
 const valueAfterColon = (field: Element): string => {
   const parts = (field.textContent || '').split(/:\s*/);
   return (parts.length > 1 ? parts[parts.length - 1] : parts[0]).trim();
-};
-
-// DPS footer spans concatenate label + value with no colon ("DPS295.4"); pull the
-// number out by stripping non-numeric characters.
-const numberFrom = (el: Element): number | null => {
-  const n = parseFloat((el.textContent || '').replace(/[^\d.]/g, ''));
-  return Number.isFinite(n) ? n : null;
 };
 
 // Round a single value: "195" -> "234" at factor 1.2.
@@ -113,9 +55,8 @@ const projectInt = (raw: string, factor: number): string | null => {
   return String(Math.round(n * factor));
 };
 
-// Round a "min-max" range: "141-211" -> "152-228". Accepts hyphen / en-dash /
-// em-dash as the separator (trade2 uses a plain hyphen for the damage property,
-// but dashes vary elsewhere — match the sibling ROLL_RANGE_PATTERN's tolerance).
+// Round a "min-max" range: "141-211" -> "169-253" at factor 1.2 (accepts hyphen /
+// en-dash / em-dash as the separator).
 const projectRange = (raw: string, factor: number): string | null => {
   const m = raw.match(/(\d+(?:\.\d+)?)\s*[-–—]\s*(\d+(?:\.\d+)?)/);
   if (!m) return null;
@@ -126,49 +67,35 @@ export default class QualityProjection extends Service implements ItemResultsEnh
   slug = 'quality-projection';
 
   enhance(itemElement: HTMLElement): void {
-    // Skip typed quality (e.g. "Quality (Attribute Modifiers)") — it may not scale
-    // the physical/defence stats we project.
+    // Skip typed quality — it may not scale the physical/defence stats we project.
     if (!isProjectableQuality(itemElement)) return;
 
     const quality = parseQuality(itemElement);
     if (quality >= QUALITY_CAP) return;
-    // The host marks rows [bt-enhanced] so enhance runs once, but guard anyway:
-    // the MutationObserver can re-fire on our own writes.
+    // The host marks rows [bt-enhanced] so enhance runs once, but guard anyway: the
+    // MutationObserver can re-fire on our own writes.
     if (itemElement.querySelector(`.${PROJECTION_CLASS}`)) return;
 
-    this.enhanceWeapon(itemElement, quality);
-    this.enhanceArmour(itemElement, quality);
+    const factor = qualityFactor(quality);
+    this.enhanceWeapon(itemElement, factor);
+    this.enhanceArmour(itemElement, factor);
   }
 
-  // Weapons: quality scales the physical portion only. Project Physical Damage,
-  // Physical DPS (× factor), and total DPS (+= physical delta; elemental fixed).
-  private enhanceWeapon(root: HTMLElement, quality: number): void {
+  // Weapons: project the Physical Damage range only. DPS / Physical DPS are left
+  // alone — the trade2 footer already renders them at max quality.
+  private enhanceWeapon(root: HTMLElement, factor: number): void {
     const physField = root.querySelector('.item-property span[data-field="pdamage"]');
     if (!physField) return;
-
-    const factor = qualityFactor(quality, sumPhysIncreased(root));
-
-    const projectedPhys = projectRange(valueAfterColon(physField), factor);
-    if (projectedPhys) this.appendProjection(physField, projectedPhys);
-
-    const pdpsField = root.querySelector('[data-field="pdps"]');
-    const dpsField = root.querySelector('[data-field="dps"]');
-    const pdps = pdpsField ? numberFrom(pdpsField) : null;
-    if (pdpsField && pdps !== null) this.appendProjection(pdpsField, (pdps * factor).toFixed(1));
-    if (dpsField && pdps !== null) {
-      const dps = numberFrom(dpsField);
-      if (dps !== null) this.appendProjection(dpsField, (dps + pdps * (factor - 1)).toFixed(1));
-    }
+    const projected = projectRange(valueAfterColon(physField), factor);
+    if (projected) this.appendProjection(physField, projected);
   }
 
-  // Armour: quality scales each defence the base has, by that defence's own
-  // increased-sum (hybrids credited to each defence they name).
-  private enhanceArmour(root: HTMLElement, quality: number): void {
-    const increases = sumDefenceIncreased(root);
+  // Armour: project each present defence (Armour / Evasion / Energy Shield). The site
+  // shows these at current quality and has no visible max-quality value for them.
+  private enhanceArmour(root: HTMLElement, factor: number): void {
     (['ar', 'ev', 'es'] as const).forEach((key) => {
       const field = root.querySelector(`.item-property span[data-field="${key}"]`);
       if (!field) return;
-      const factor = qualityFactor(quality, increases[key]);
       const projected = projectInt(valueAfterColon(field), factor);
       if (projected) this.appendProjection(field, projected);
     });
