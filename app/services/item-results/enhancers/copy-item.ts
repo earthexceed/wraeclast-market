@@ -34,6 +34,12 @@ const POB_IMPORTABLE_CATEGORIES = [
   'Quivers',
 ];
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+// "papers" icon by Lorc — game-icons.net, CC BY 3.0. Foreground path only (the
+// original's solid background rect is dropped); rendered with currentColor.
+const PAPERS_ICON_PATH =
+  'M18.906 18.06v369.23C112.4 252.618 269.43 157.82 430.37 133.76L228.42 18.06H18.906zM325.72 179.327C200.38 223.948 86.405 311.052 18.157 422.568v33.602c113.074-111.488 277-176.38 434.373-175.25L325.72 179.326zm25.56 128.682c-125.218 21.642-246.974 83.6-333.124 174.812v10.297h58.916c113.9-65.58 251.166-95.325 379.492-80.814L351.28 308.008zm-2.253 120.96c-80.122 5.884-160.432 27.957-232.61 64.15h266.42l-33.81-64.15z';
+
 // PoE2 trade icon URLs encode the art path as base64 JSON inside the URL:
 //   https://web.poecdn.com/gen/image/<base64>/<hash>/<name>.png
 // where atob(<base64>) === [w, h, {"f": "2DItems/Weapons/OneHandWeapons/...", ...}].
@@ -104,10 +110,42 @@ export default class CopyItem extends Service implements ItemResultsEnhancerServ
     const button = window.document.createElement('button');
     // standard button styles from pathofexile.com + our override
     button.classList.add('btn', 'btn-default', 'bt-copy-item-button');
-    button.textContent = this.intl.t('item-results.copy-item.button');
+    button.appendChild(this.renderPapersIcon());
+
+    // The label lives in its own span so feedback can swap the text without
+    // wiping the icon.
+    const label = window.document.createElement('span');
+    label.classList.add('bt-copy-item-label');
+    label.textContent = this.intl.t('item-results.copy-item.button');
+    button.appendChild(label);
+
     button.addEventListener('click', this.handleCopyClick);
 
     return button;
+  }
+
+  private renderPapersIcon(): SVGElement {
+    const svg = window.document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 512 512');
+    svg.setAttribute('width', '13');
+    svg.setAttribute('height', '13');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    svg.style.fill = 'currentColor';
+    svg.style.verticalAlign = '-2px';
+    svg.style.marginRight = '5px';
+
+    const path = window.document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', PAPERS_ICON_PATH);
+    svg.appendChild(path);
+
+    return svg;
+  }
+
+  // Updates only the text label, preserving the icon.
+  private setCopyLabel(button: HTMLButtonElement, key: string) {
+    const label = button.querySelector('.bt-copy-item-label');
+    if (label) label.textContent = this.intl.t(key);
   }
 
   private handleCopyClick = (event: MouseEvent) => {
@@ -166,10 +204,10 @@ export default class CopyItem extends Service implements ItemResultsEnhancerServ
     // no timer is left dangling.
     this.resetPendingFeedback();
 
-    button.textContent = this.intl.t('item-results.copy-item.copied');
+    this.setCopyLabel(button, 'item-results.copy-item.copied');
 
     const timeout = setTimeout(() => {
-      button.textContent = this.intl.t('item-results.copy-item.button');
+      this.setCopyLabel(button, 'item-results.copy-item.button');
       this.pendingFeedback = null;
     }, COPIED_FEEDBACK_MS);
 
@@ -180,7 +218,7 @@ export default class CopyItem extends Service implements ItemResultsEnhancerServ
     if (!this.pendingFeedback) return;
 
     clearTimeout(this.pendingFeedback.timeout);
-    this.pendingFeedback.button.textContent = this.intl.t('item-results.copy-item.button');
+    this.setCopyLabel(this.pendingFeedback.button, 'item-results.copy-item.button');
     this.pendingFeedback = null;
   }
 }

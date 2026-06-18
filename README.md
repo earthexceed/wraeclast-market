@@ -44,3 +44,7 @@ Don't forget to run `make help` to know more about the other commands.
 
 - [How to install a local extension](https://developer.chrome.com/extensions/getstarted)
 - [Extension reloader](https://chrome.google.com/webstore/detail/extensions-reloader/fimgfedafeadlieiabdeeaodndnlbhid)
+
+## Credits
+
+- The "Copy for PoB" button uses the **papers** icon by [Lorc](https://lorcblog.blogspot.com/) from [game-icons.net](https://game-icons.net/), licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
