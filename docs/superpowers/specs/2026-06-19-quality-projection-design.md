@@ -93,13 +93,23 @@ The trade2 result row (`.resultset > div.row[data-id]`) renders each property as
 |---|---|---|
 | `quality` | Quality | `Quality: +20%` |
 | `pdamage` | Physical Damage (range) | `Physical Damage: 141-211` |
-| `ar` / `ev` / `es` | Armour / Evasion / Energy Shield *(exact keys verified against a live armour item during implementation)* | `Armour: 420` |
+| `ar` / `ev` / `es` | Armour / Evasion Rating / Energy Shield (verified live 2026-06-19) | `Armour: 195` |
+
+**Scope all reads to `.item-property span[data-field="…"]`.** A separate "Base
+Percentile" breakdown widget in each row also carries `data-field="ar"/"ev"/"es"`
+spans; an unscoped `[data-field="ar"]` lookup matches that widget instead of the
+property line (observed live). The value is the text after the colon —
+`span.textContent.split(/:\s*/).pop()` yields `141-211` or `195`.
 
 The DPS footer is `div.itemPopupAdditional` with `span[data-field="dps"|"pdps"|
 "edps"]` whose text concatenates label + value (e.g. `DPS295.4`); parse with a
 non-numeric strip.
 
-Mods are `.item-mod` elements; `.textContent` holds the displayed mod line.
+Mods are `.item-mod` elements; `.textContent` holds the displayed mod line. Note
+the rendered text runs the stat into its tier badge with no separator (e.g.
+`40% increased Armour and EvasionPredator's (≥78)`), so defence parsing must stop
+the captured phrase at the first non-defence token rather than reading to
+end-of-line.
 
 ## Approach (chosen: A — regex-based, weapon + armour)
 
@@ -134,11 +144,18 @@ Implements `enhance(itemElement, parsedItem)`:
      (1-decimal, matching the site).
 4. **Armour branch** (any of `ar` / `ev` / `es` exists): for each present defence
    `D`:
-   - `I_D` = sum of `% increased` mods naming `D`. A single mod can name several
-     defences (`20% increased Armour and Evasion`); attribute its value to every
-     defence it names. `increased Defences` (if present) contributes to all.
+   - `I_D` = sum of `% increased` mods naming `D`. Wording is inconsistent — a pure
+     mod reads `13% increased Evasion Rating` while hybrids drop "Rating"
+     (`40% increased Armour and Evasion`, `24% increased Evasion and Energy
+     Shield`). So capture `(\d+(?:\.\d+)?)% increased ` + a run of defence tokens
+     (`Armour|Evasion Rating|Evasion|Energy Shield|Defences|and|,|space`), then
+     attribute the value to every defence keyword the phrase contains (`Armour`,
+     `Evasion`, `Energy Shield`). `increased Defences` contributes to all three.
+     The token-run capture naturally stops at the tier badge (`…EvasionPredator's`).
    - `factor_D = (120 + I_D) / (100 + Q + I_D)`
    - Append `(→ <value×factor_D> @20%)` to that defence's line (integer).
+   - Verified live: evasion `34` with `13% increased Evasion Rating`, Q=0 →
+     factor `1.177` → `40`; a no-increase Armour/ES base → factor `1.2` exactly.
 5. Each appended node is a `<span class="bt-quality-projection"> (→ … @20%)</span>`.
 
 A helper `sumIncreased(root, regex)` collects `.item-mod` text and sums all
