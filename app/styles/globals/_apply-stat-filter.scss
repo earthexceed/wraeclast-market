@@ -8,6 +8,14 @@
   right: 6px;
   top: 50%;
   transform: translateY(-50%);
+  // On hover the trade site reveals the affix-tier name (e.g. "of Rejuvenation")
+  // right-aligned over this same area. Sit above it AND carry an opaque panel
+  // background so that text stays behind the controls instead of bleeding through
+  // the gaps / the semi-transparent field.
+  z-index: 2;
+  padding: 2px 4px;
+  border-radius: 3px;
+  background-color: rgba(8, 7, 5, 0.96);
 }
 
 .bt-apply-stat-filter-field {
