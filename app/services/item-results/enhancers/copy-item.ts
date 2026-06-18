@@ -11,7 +11,6 @@ import FlashMessages from 'ember-cli-flash/services/flash-messages';
 import {buildGameIcon} from 'better-trading/utilities/game-icon';
 
 const COPIED_FEEDBACK_MS = 1500;
-const COPY_BUTTON_GAP_PX = 4;
 
 // The full rendered item (name → bottom). NOTE: `.itemRendered` is only the icon
 // box — the item text lives in `.item-popup`.
@@ -82,7 +81,9 @@ export default class CopyItem extends Service implements ItemResultsEnhancerServ
     const iconElement = itemElement.querySelector<HTMLImageElement>('.icon img');
     if (!isPobImportable(iconElement?.src)) return;
 
-    // Anchor the Copy button directly below the Apply button. apply-stat-filter runs
+    // Use the Apply button as the vertical anchor: place Copy at the same height but
+    // on the LEFT, mirroring Apply on the right — it sits in the otherwise-empty
+    // bottom-left of the card instead of stacking under Apply. apply-stat-filter runs
     // before this enhancer (alphabetical registration), so its button already exists
     // for items with filterable mods. No Apply button (modless item, or the enhancer
     // is disabled) means no anchor — skip.
@@ -96,9 +97,8 @@ export default class CopyItem extends Service implements ItemResultsEnhancerServ
 
     const button = this.renderCopyButton();
     button.style.position = 'absolute';
-    button.style.right = '6px';
-    const applyTop = parseFloat(applyButton.style.top) || applyButton.offsetTop;
-    button.style.top = `${applyTop + applyButton.offsetHeight + COPY_BUTTON_GAP_PX}px`;
+    button.style.left = '6px';
+    button.style.top = `${parseFloat(applyButton.style.top) || applyButton.offsetTop}px`;
     if (applyButton.style.width) button.style.width = applyButton.style.width;
 
     container.appendChild(button);

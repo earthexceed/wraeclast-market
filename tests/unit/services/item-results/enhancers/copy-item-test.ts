@@ -88,7 +88,7 @@ describe('Unit | Services | ItemResults | Enhancers | CopyItem', () => {
 
     afterEach(() => container.remove());
 
-    it('injects exactly one Copy button below the Apply button on an importable item', () => {
+    it('injects exactly one Copy button (anchored to the Apply button) on an importable item', () => {
       const row = buildRow('2DItems/Armours/BodyArmours/Int/BodyInt1');
       container.appendChild(row);
 
@@ -97,7 +97,7 @@ describe('Unit | Services | ItemResults | Enhancers | CopyItem', () => {
 
       const buttons = container.querySelectorAll('.bt-copy-item-button');
       expect(buttons.length).to.equal(1);
-      // It lives in the Apply button's container (positioned below it).
+      // It lives in the Apply button's container (placed bottom-left, mirroring Apply).
       expect(buttons[0].closest('.item-popup__content')).to.not.equal(null);
     });
 
