@@ -114,7 +114,7 @@ describe('Unit | Services | ItemResults | Enhancers | QualityProjection', () => 
     // A weapon row: quality line (optional), a Physical Damage property, a DPS
     // footer, and mod lines. Mirrors the live trade2 DOM.
     const weaponRow = (
-      {quality, pdamage, dps, pdps, mods}: {quality: number | null; pdamage: string; dps: string; pdps: string; mods: string[]}
+      {quality, pdamage, dps, pdps, edps = '0', mods}: {quality: number | null; pdamage: string; dps: string; pdps: string; edps?: string; mods: string[]}
     ): HTMLDivElement => {
       const row = window.document.createElement('div');
       const q =
@@ -129,7 +129,7 @@ describe('Unit | Services | ItemResults | Enhancers | QualityProjection', () => 
         <div class="itemPopupAdditional">
           <span data-field="dps">DPS<span>${dps}</span></span>
           <span data-field="pdps">Physical DPS<span>${pdps}</span></span>
-          <span data-field="edps">Elemental DPS<span>0</span></span>
+          <span data-field="edps">Elemental DPS<span>${edps}</span></span>
         </div>
       `;
       return row;
@@ -176,6 +176,25 @@ describe('Unit | Services | ItemResults | Enhancers | QualityProjection', () => 
       expect(projectionOn(row, 'dps')).to.equal('(→ 318.9 @20%)');
     });
 
+    it('scales only the physical portion of total DPS, leaving elemental fixed', () => {
+      const row = weaponRow({
+        quality: 0,
+        pdamage: '141-211',
+        dps: '400',
+        pdps: '295.4',
+        edps: '104.6',
+        mods: ['151% increased Physical Damage'],
+      });
+      container.appendChild(row);
+
+      service.enhance(row);
+
+      // factor 1.0797: pdps 295.4 -> 318.9; total dps = 400 + 295.4*(factor-1)
+      //   = 400 + 23.5 = 423.5  (equivalently projected pdps 318.9 + fixed edps 104.6)
+      expect(projectionOn(row, 'pdps')).to.equal('(→ 318.9 @20%)');
+      expect(projectionOn(row, 'dps')).to.equal('(→ 423.5 @20%)');
+    });
+
     it('does not project when quality is already at the cap', () => {
       const row = weaponRow({quality: 20, pdamage: '180-270', dps: '518', pdps: '315', mods: ['168% increased Physical Damage']});
       container.appendChild(row);
@@ -217,6 +236,15 @@ describe('Unit | Services | ItemResults | Enhancers | QualityProjection', () => 
 
       expect(projectionOn(row, 'ar')).to.equal('(→ 234 @20%)'); // 195 * 1.2
       expect(projectionOn(row, 'es')).to.equal('(→ 68 @20%)'); // 57 * 1.2 = 68.4 -> 68
+    });
+
+    it('injects nothing when the item has no projectable line', () => {
+      const row = rowWithMods(['+40 to maximum Life', '20% increased Rarity of Items'], {quality: 0});
+      container.appendChild(row);
+
+      service.enhance(row);
+
+      expect(row.querySelectorAll('.bt-quality-projection').length).to.equal(0);
     });
   });
 });

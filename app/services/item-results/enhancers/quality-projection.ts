@@ -101,9 +101,11 @@ const projectInt = (raw: string, factor: number): string | null => {
   return String(Math.round(n * factor));
 };
 
-// Round a "min-max" range: "141-211" -> "152-228".
+// Round a "min-max" range: "141-211" -> "152-228". Accepts hyphen / en-dash /
+// em-dash as the separator (trade2 uses a plain hyphen for the damage property,
+// but dashes vary elsewhere — match the sibling ROLL_RANGE_PATTERN's tolerance).
 const projectRange = (raw: string, factor: number): string | null => {
-  const m = raw.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+  const m = raw.match(/(\d+(?:\.\d+)?)\s*[-–—]\s*(\d+(?:\.\d+)?)/);
   if (!m) return null;
   return `${Math.round(parseFloat(m[1]) * factor)}-${Math.round(parseFloat(m[2]) * factor)}`;
 };
