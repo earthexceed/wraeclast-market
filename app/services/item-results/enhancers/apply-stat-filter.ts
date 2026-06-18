@@ -34,6 +34,9 @@ const TRADE_SEARCH_API = '/api/trade2/search/poe2';
 // "magnifying-glass" icon by Lorc — game-icons.net, CC BY 3.0. Foreground path only.
 const MAGNIFIER_ICON_PATH =
   'M333.78 20.188c-39.97 0-79.96 15.212-110.405 45.656-58.667 58.667-60.796 152.72-6.406 213.97l-15.782 15.748 13.25 13.25 15.75-15.78c61.248 54.39 155.3 52.26 213.968-6.407 60.887-60.886 60.888-159.894 0-220.78C413.713 35.4 373.753 20.187 333.78 20.187zm0 18.562c35.15 0 70.285 13.44 97.158 40.313 53.745 53.745 53.744 140.6 0 194.343-51.526 51.526-133.46 53.643-187.5 6.375l.218-.217c-2.35-2.05-4.668-4.17-6.906-6.407-2.207-2.206-4.288-4.496-6.313-6.812l-.218.22c-47.27-54.04-45.152-135.976 6.374-187.502C263.467 52.19 298.63 38.75 333.78 38.75zm0 18.813c-30.31 0-60.63 11.6-83.81 34.78-46.362 46.362-46.362 121.234 0 167.594 10.14 10.142 21.632 18.077 33.905 23.782-24.91-19.087-40.97-49.133-40.97-82.94 0-15.323 3.292-29.888 9.22-43-4.165 20.485.44 40.88 14.47 54.907 24.583 24.585 68.744 20.318 98.624-9.562 29.88-29.88 34.146-74.04 9.56-98.625-2.375-2.376-4.943-4.473-7.655-6.313 45.13 8.648 79.954 46.345 84.25 92.876 4.44-35.07-6.82-71.726-33.813-98.72-23.18-23.18-53.47-34.78-83.78-34.78zM176.907 297.688L42.094 432.5l34.562 34.563L211.47 332.25l-34.564-34.563zM40 456.813L24 472.78 37.22 486l15.968-16L40 456.812z';
+// After an Apply we stash the applied filters under this key (+ the new search id)
+// so the post-reload page can pre-tick them WITHOUT an extra trade2 API call.
+const APPLIED_STORAGE_PREFIX = 'bt-applied:';
 
 interface InjectedControl {
   statId: string;
@@ -99,9 +102,29 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     if (slug === this.cachedSlug) return; // same search — keep state
 
     this.cachedSlug = slug;
-    this.activeFilters = {};
-    this.activeFiltersFetched = false;
     this.pageControls = [];
+
+    // If this search came from our own Apply, we stored the applied filters keyed by
+    // its id — restore them so the controls pre-tick on render (no network call).
+    // Otherwise defer to the lazy API fetch on first interaction.
+    const stored = this.readStoredApplied(slug);
+    if (stored) {
+      this.activeFilters = stored;
+      this.activeFiltersFetched = true;
+    } else {
+      this.activeFilters = {};
+      this.activeFiltersFetched = false;
+    }
+  }
+
+  private readStoredApplied(slug: string | null): Record<string, StatFilterValue> | null {
+    if (!slug) return null;
+    try {
+      const raw = window.sessionStorage.getItem(`${APPLIED_STORAGE_PREFIX}${slug}`);
+      return raw ? (JSON.parse(raw) as Record<string, StatFilterValue>) : null;
+    } catch (_error) {
+      return null;
+    }
   }
 
   // Fetch the current search's active filters at most once per search, lazily, and
@@ -117,19 +140,24 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     const encodedLeague = encodeURIComponent(poe2LeagueName(this.tradeLocation.league || ''));
     this.activeFilters = await this.fetchActiveFilters(encodedLeague, slug);
 
-    this.pageControls.forEach((control) => {
-      const active = this.activeFilters[control.statId];
-      if (!active) return;
-      // Don't clobber anything the user has already typed.
-      if (control.minInput && active.min !== undefined && control.minInput.dataset.btTouched !== 'true') {
-        control.minInput.value = String(active.min);
-      }
-      if (control.maxInput && active.max !== undefined && control.maxInput.dataset.btTouched !== 'true') {
-        control.maxInput.value = String(active.max);
-      }
-      control.enabledInput.checked = true;
-      control.wrapper.classList.add('bt-is-enabled');
-    });
+    this.pageControls.forEach((control) => this.backfillControl(control));
+  }
+
+  // Pre-tick + pre-fill a single control from this.activeFilters (the current
+  // search's filters, sourced either from sessionStorage after our own Apply or
+  // lazily from the API). Never clobbers a value the user has already typed.
+  private backfillControl(control: InjectedControl) {
+    const active = this.activeFilters[control.statId];
+    if (!active) return;
+
+    if (control.minInput && active.min !== undefined && control.minInput.dataset.btTouched !== 'true') {
+      control.minInput.value = String(active.min);
+    }
+    if (control.maxInput && active.max !== undefined && control.maxInput.dataset.btTouched !== 'true') {
+      control.maxInput.value = String(active.max);
+    }
+    control.enabledInput.checked = true;
+    control.wrapper.classList.add('bt-is-enabled');
   }
 
   private async fetchActiveFilters(encodedLeague: string, slug: string): Promise<Record<string, StatFilterValue>> {
@@ -203,6 +231,9 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       };
       controls.push(injected);
       this.pageControls.push(injected);
+      // If the active filters are already known (restored from our own Apply), tick
+      // this control immediately — no need to wait for the user to interact.
+      if (this.activeFiltersFetched) this.backfillControl(injected);
       lastControlledMod = modElement;
       if (!firstWrapper && scalable) firstWrapper = control.wrapper; // size the button to a full control
     });
@@ -339,7 +370,24 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       return this.flashMessages.alert(this.intl.t('general.generic-alert-flash'));
     }
 
+    // Remember what we applied (keyed by the new search id) so the post-reload page
+    // pre-ticks these controls without re-fetching — consumed in prepare().
+    this.storeAppliedFilters(searchId, enabled);
+
     window.location.href = `/trade2/search/poe2/${encodedLeague}/${searchId}`;
+  }
+
+  private storeAppliedFilters(searchId: string, controls: InjectedControl[]) {
+    const applied: Record<string, StatFilterValue> = {};
+    controls.forEach((control) => {
+      applied[control.statId] = this.controlValue(control);
+    });
+
+    try {
+      window.sessionStorage.setItem(`${APPLIED_STORAGE_PREFIX}${searchId}`, JSON.stringify(applied));
+    } catch (_error) {
+      // sessionStorage unavailable — pre-tick falls back to the lazy API fetch.
+    }
   }
 
   // Preserve the current search (category/rarity/existing filters) so Apply merges
@@ -367,24 +415,30 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       query.stats.unshift(andGroup);
     }
 
-    controls.forEach(({statId, minInput, maxInput}) => {
-      const value: StatFilterValue = {};
-      const min = minInput ? parseFloat(minInput.value) : NaN;
-      const max = maxInput ? parseFloat(maxInput.value) : NaN;
-      if (!Number.isNaN(min)) value.min = min;
-      if (!Number.isNaN(max)) value.max = max;
+    controls.forEach((control) => {
       // Empty value is intentional for presence-only mods ("must have this mod").
+      const value = this.controlValue(control);
 
       // Scope the lookup to the and-group we write into; searching across all
       // groups could overwrite a weight/count/if/not group's filter value.
-      const existing = (andGroup as StatGroup).filters.find((filter) => filter.id === statId);
+      const existing = (andGroup as StatGroup).filters.find((filter) => filter.id === control.statId);
 
       if (existing) {
         existing.value = value;
       } else {
-        (andGroup as StatGroup).filters.push({id: statId, value});
+        (andGroup as StatGroup).filters.push({id: control.statId, value});
       }
     });
+  }
+
+  // Reads a control's numeric min/max into a StatFilterValue (empty = presence-only).
+  private controlValue({minInput, maxInput}: InjectedControl): StatFilterValue {
+    const value: StatFilterValue = {};
+    const min = minInput ? parseFloat(minInput.value) : NaN;
+    const max = maxInput ? parseFloat(maxInput.value) : NaN;
+    if (!Number.isNaN(min)) value.min = min;
+    if (!Number.isNaN(max)) value.max = max;
+    return value;
   }
 }
 
