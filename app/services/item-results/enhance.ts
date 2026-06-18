@@ -2,6 +2,7 @@
 import Service, {inject as service} from '@ember/service';
 import {enqueueTask} from 'ember-concurrency-decorators';
 import window from 'ember-window-mock';
+import {debounce} from 'lodash';
 
 // Types
 import {ItemResultsEnhancerService} from 'better-trading/types/item-results';
@@ -10,6 +11,8 @@ import {Task} from 'better-trading/types/ember-concurrency';
 
 // Utilities
 import {asyncLoop} from 'better-trading/utilities/async-loop';
+
+const RESULTS_MUTATION_DEBOUNCE_MS = 50;
 
 export default class ItemResultsEnhance extends Service {
   @service('item-results')
@@ -40,10 +43,16 @@ export default class ItemResultsEnhance extends Service {
     const tradeAppElement = window.document.getElementById('trade');
     if (!tradeAppElement || !tradeAppElement.parentElement) return;
 
-    this.resultsObserver = new MutationObserver(() => {
+    // Debounced: the enhancers mutate the same subtree this observer watches
+    // (appending buttons, toggling [bt-enhanced]), so an undebounced callback
+    // re-fires on our own writes and queues redundant enhance passes. Collapse
+    // bursts into a single trailing perform().
+    const handleResultsMutation = debounce(() => {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       (this.enhanceTask as Task).perform();
-    });
+    }, RESULTS_MUTATION_DEBOUNCE_MS);
+
+    this.resultsObserver = new MutationObserver(handleResultsMutation);
 
     this.resultsObserver.observe(tradeAppElement.parentElement, {
       childList: true,

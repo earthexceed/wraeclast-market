@@ -116,7 +116,14 @@ export default class PoeNinja extends Service {
     if (cachedRatios) return cachedRatios;
 
     const uri = `${CURRENCIES_RESOURCE_URI}&league=${league}`;
-    const payload = (await this.extensionBackground.fetchPoeNinjaResource(uri)) as PoeNinjaCurrenciesPayload;
+    let payload: PoeNinjaCurrenciesPayload;
+    try {
+      payload = (await this.extensionBackground.fetchPoeNinjaResource(uri)) as PoeNinjaCurrenciesPayload;
+    } catch (_error) {
+      // poe.ninja unavailable: degrade gracefully (no equivalence shown) instead
+      // of letting the rejection crash the enhance pass.
+      return {};
+    }
 
     const ratios = this.parseChaosRatios(payload);
     await this.cacheChaosRatiosFor(league, ratios);
@@ -132,7 +139,13 @@ export default class PoeNinja extends Service {
     if (cachedRatios && Object.keys(cachedRatios).length > 0) return cachedRatios;
 
     const uri = `${POE2_CURRENCIES_RESOURCE_URI}&league=${encodeURIComponent(poe2LeagueName(league))}`;
-    const payload = (await this.extensionBackground.fetchPoeNinjaPoe2Resource(uri)) as PoeNinjaPoe2Payload;
+    let payload: PoeNinjaPoe2Payload;
+    try {
+      payload = (await this.extensionBackground.fetchPoeNinjaPoe2Resource(uri)) as PoeNinjaPoe2Payload;
+    } catch (_error) {
+      // poe.ninja unavailable: degrade gracefully (no equivalence shown).
+      return {};
+    }
 
     const ratios = parsePoe2Ratios(payload);
     if (Object.keys(ratios).length > 0) {

@@ -133,11 +133,13 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       if (!response.ok) return map;
       const query = ((await response.json()) as {query?: TradeQuery}).query;
       if (query && Array.isArray(query.stats)) {
-        query.stats
-          .flatMap((group) => group.filters || [])
-          .forEach((filter) => {
-            if (filter && filter.id) map[filter.id] = filter.value || {};
-          });
+        // Only the 'and' group is where we read/write filters; other group types
+        // (weight/count/if/not) legitimately reuse stat ids with different value
+        // semantics, so flat-mapping across all groups would mis-key the map.
+        const andGroup = query.stats.find((group) => group.type === 'and');
+        (andGroup?.filters || []).forEach((filter) => {
+          if (filter && filter.id) map[filter.id] = filter.value || {};
+        });
       }
     } catch (_error) {
       // leave map empty
@@ -366,9 +368,9 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       if (!Number.isNaN(max)) value.max = max;
       // Empty value is intentional for presence-only mods ("must have this mod").
 
-      const existing = query.stats
-        .flatMap((group) => group.filters || [])
-        .find((filter) => filter.id === statId);
+      // Scope the lookup to the and-group we write into; searching across all
+      // groups could overwrite a weight/count/if/not group's filter value.
+      const existing = (andGroup as StatGroup).filters.find((filter) => filter.id === statId);
 
       if (existing) {
         existing.value = value;

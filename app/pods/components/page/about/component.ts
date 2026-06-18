@@ -21,8 +21,6 @@ export default class PageAbout extends Component {
 
   appVersion = config.APP.version;
   githubUrl = config.APP.githubUrl;
-  discordUrl = config.APP.discordUrl;
-  chaosRecipeOverlayUrl = config.APP.chaosRecipeOverlayUrl;
   currentChangelog = config.APP.changelog;
 
   get enhancers(): Enhancer[] {

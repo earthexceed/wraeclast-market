@@ -36,7 +36,9 @@ export default class PageTitle extends Service {
     if (!titleElement) {
       return;
     }
-    this.baseSiteTitle = document.title;
+    // Strip any existing woop prefix so baseSiteTitle holds the normal form
+    // (the invariant the rest of this service relies on).
+    this.baseSiteTitle = document.title.replace(WOOP_PREFIX_REGEX, '');
 
     // The observer is to counteract the trade site's native behavior of regularly
     // resetting the document title in response to various UI interactions.

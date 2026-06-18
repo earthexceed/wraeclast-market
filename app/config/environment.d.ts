@@ -21,10 +21,7 @@ declare const config: {
       slug: string;
     } | null;
     imageResourcePrefix: string;
-    discordUrl: string;
-    tftDiscordUrl: string;
     githubUrl: string;
-    chaosRecipeOverlayUrl: string;
     browser: 'chrome' | 'firefox';
     locationPollingIntervalInMilliseconds: number;
     maximumHistoryLength: number;

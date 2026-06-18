@@ -14,7 +14,6 @@ const NORMALIZED_CURRENCY_IMAGE_URL = 'https://web.poecdn.com/image/Art/2DItems/
 const NORMALIZED_CURRENCY_ALT = 'divine';
 const NORMALIZED_CURRENCY_SLUG = 'divine-orb';
 const NORMALIZED_CURRENCY_EQUIVALENCE_THRESHOLD = 0.5;
-const EQUAL_HTML = '<span class="bt-equivalent-pricings-equals">=</span>';
 
 // PoE2 reference currencies the price is annotated against (poe.ninja powered).
 const POE2_REFERENCE_SLUGS = ['exalted-orb', 'divine-orb', 'chaos-orb', 'orb-of-annulment'];
@@ -160,23 +159,15 @@ export default class EquivalentPricings extends Service implements ItemResultsEn
   }
 
   private renderPoe2Equivalence(equivalentValue: number, currencyIconUrl: string, currencyAlt: string): HTMLElement {
-    const element = window.document.createElement('span');
-    element.classList.add('bt-equivalent-pricings');
-    element.classList.add('bt-equivalent-pricings-equivalent');
-
-    element.innerHTML = `<span>${EQUAL_HTML}${equivalentValue}×<img src="${currencyIconUrl}" alt="${currencyAlt}" /></span>`;
-
-    return element;
+    return this.buildEquivalenceElement('bt-equivalent-pricings-equivalent', [
+      {value: `${equivalentValue}×`, src: currencyIconUrl, alt: currencyAlt},
+    ]);
   }
 
   private renderChaosEquivalence(chaosEquivalentValue: number): HTMLElement {
-    const element = window.document.createElement('span');
-    element.classList.add('bt-equivalent-pricings');
-    element.classList.add('bt-equivalent-pricings-equivalent');
-
-    element.innerHTML = `<span>${EQUAL_HTML}${chaosEquivalentValue}×<img src="${CHAOS_IMAGE_URL}" alt="${CHAOS_ALT}" /></span>`;
-
-    return element;
+    return this.buildEquivalenceElement('bt-equivalent-pricings-equivalent', [
+      {value: `${chaosEquivalentValue}×`, src: CHAOS_IMAGE_URL, alt: CHAOS_ALT},
+    ]);
   }
 
   private renderChaosFraction(
@@ -185,24 +176,44 @@ export default class EquivalentPricings extends Service implements ItemResultsEn
     currencyIconAlt: string,
     chaosFractionValue: number
   ): HTMLElement {
-    const element = window.document.createElement('span');
-    element.classList.add('bt-equivalent-pricings');
-    element.classList.add('bt-equivalent-pricings-chaos-fraction');
-
-    const flooredPart = `${flooredCurrencyValue}×<img src="${currencyIconUrl}" alt="${currencyIconAlt}" />`;
-    const fractionPart = `+${chaosFractionValue}×<img src="${CHAOS_IMAGE_URL}" alt="${CHAOS_ALT}" />`;
-    element.innerHTML = `<span>${EQUAL_HTML}${flooredPart}${fractionPart}</span>`;
-
-    return element;
+    return this.buildEquivalenceElement('bt-equivalent-pricings-chaos-fraction', [
+      {value: `${flooredCurrencyValue}×`, src: currencyIconUrl, alt: currencyIconAlt},
+      {value: `+${chaosFractionValue}×`, src: CHAOS_IMAGE_URL, alt: CHAOS_ALT},
+    ]);
   }
 
   private renderNormalizedCurrencyEquivalence(normalizedCurrencyValue: number): HTMLElement {
+    return this.buildEquivalenceElement('bt-equivalent-pricings-equivalent', [
+      {value: `${normalizedCurrencyValue}×`, src: NORMALIZED_CURRENCY_IMAGE_URL, alt: NORMALIZED_CURRENCY_ALT},
+    ]);
+  }
+
+  // Builds the equivalence pill via the DOM API (never innerHTML) so currency
+  // icon URLs/alts — sourced from poe.ninja and the trade page DOM (untrusted) —
+  // cannot break out of an attribute or inject markup.
+  private buildEquivalenceElement(
+    modifierClass: string,
+    parts: Array<{value: string; src: string; alt: string}>
+  ): HTMLElement {
     const element = window.document.createElement('span');
-    element.classList.add('bt-equivalent-pricings');
-    element.classList.add('bt-equivalent-pricings-equivalent');
+    element.classList.add('bt-equivalent-pricings', modifierClass);
 
-    element.innerHTML = `<span>${EQUAL_HTML}${normalizedCurrencyValue}×<img src="${NORMALIZED_CURRENCY_IMAGE_URL}" alt="${NORMALIZED_CURRENCY_ALT}" /></span>`;
+    const inner = window.document.createElement('span');
 
+    const equals = window.document.createElement('span');
+    equals.classList.add('bt-equivalent-pricings-equals');
+    equals.textContent = '=';
+    inner.appendChild(equals);
+
+    parts.forEach(({value, src, alt}) => {
+      inner.appendChild(window.document.createTextNode(value));
+      const img = window.document.createElement('img');
+      img.src = src;
+      img.alt = alt;
+      inner.appendChild(img);
+    });
+
+    element.appendChild(inner);
     return element;
   }
 }

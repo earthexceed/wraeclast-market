@@ -50,9 +50,11 @@ export default class Pinnable extends Service implements ItemResultsEnhancerServ
   private handlePinClick(event: MouseEvent) {
     if (!event.target) return;
 
-    const itemElement = (event.target as HTMLElement).closest('[bt-enhanced]') as HTMLElement;
+    const itemElement = (event.target as HTMLElement).closest('[bt-enhanced]') as HTMLElement | null;
+    if (!itemElement) return;
+
     const itemId = itemElement.dataset.id;
-    if (!itemElement || !itemId) return;
+    if (!itemId) return;
 
     if (this.pinnedItems[itemId]) {
       delete this.pinnedItems[itemId];

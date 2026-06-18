@@ -5,7 +5,7 @@ page:
     collapse-all: Collapse folders
     show-archived-folders: Show archive
     show-unarchived-folders: Return to active folders
-    folders-warning: Having a lot of folders can slow down the website.<br>Backup unnecessary folders using the export feature, then delete them.
+    folders-warning: Having a lot of folders can slow down the website. Backup unnecessary folders using the export feature, then delete them.
     delete-folder-success-flash: 'The folder "{title}" has been deleted.'
     update-folder-success-flash: 'The folder "{title}" has been updated.'
     create-folder-success-flash: 'The folder "{title}" has been created.'

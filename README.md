@@ -31,7 +31,7 @@ In the meantime, you can continue to use version [1.3.2 on Firefox](https://addo
 
 ## Contributing
 
-1. Make sure Node.js (v10.15.x) and NPM (v6.4.x) are installed;
+1. Make sure Node.js (18+) and NPM (8+) are installed (the build runs on Node 24 via `NODE_OPTIONS=--openssl-legacy-provider`);
 2. Install the dependencies with `make dependencies`;
 3. Build the project with `make dev`;
 4. Install the local extension located at `./dist/dev`.

@@ -67,7 +67,7 @@ export default class RegroupSimilars extends Service implements ItemResultsEnhan
     wrapper.appendChild(button);
 
     const detailsElement = result.querySelector('.details .btns');
-    detailsElement?.appendChild(button);
+    detailsElement?.appendChild(wrapper);
 
     return button;
   }
