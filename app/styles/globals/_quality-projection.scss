@@ -1,0 +1,10 @@
+// The projected "at 20% quality" value appended to weapon damage / DPS and
+// armour defence lines. Muted green reads as "potential upgrade" without
+// competing with the item's real numbers. nowrap keeps "(→ 152-228 @20%)"
+// on one line.
+.bt-quality-projection {
+  color: #7fc77f;
+  font-style: italic;
+  margin-left: 4px;
+  white-space: nowrap;
+}
