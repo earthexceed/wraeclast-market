@@ -83,6 +83,20 @@ interface TradeQuery {
   filters?: object;
 }
 
+// Flatten a query's and-group into a {statId: value} map. Used to persist the FULL
+// applied search (pre-existing filters + the ones just enabled) for post-reload
+// pre-ticking — storing only the toggled controls misses filters the search already
+// carried (a prior Apply or a manual filter), so they wouldn't re-tick.
+export const queryToFilterMap = (query: TradeQuery): Record<string, StatFilterValue> => {
+  const filters: Record<string, StatFilterValue> = {};
+  const andGroup = query.stats.find((group) => group.type === 'and');
+  (andGroup?.filters || []).forEach((filter) => {
+    filters[filter.id] = filter.value;
+  });
+
+  return filters;
+};
+
 export default class ApplyStatFilter extends Service implements ItemResultsEnhancerService {
   @service('trade-location')
   tradeLocation: TradeLocation;
@@ -395,22 +409,19 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       return this.flashMessages.alert(this.intl.t('general.generic-alert-flash'));
     }
 
-    // Remember what we applied so the post-reload page pre-ticks these controls
-    // without re-fetching — consumed in prepare(). Not keyed by search id: the site
-    // rewrites the id on load, so a fresh single "pending" entry is used instead.
-    this.storeAppliedFilters(enabled);
+    // Remember the FULL applied query (pre-existing filters + the ones we just
+    // enabled) so the post-reload page pre-ticks every mod the search filters on,
+    // not only the controls toggled this time — consumed in prepare(). Not keyed by
+    // search id: the site rewrites the id on load, so a single "pending" entry is used.
+    this.storeAppliedFilters(query);
 
     window.location.href = `/trade2/search/poe2/${encodedLeague}/${searchId}`;
   }
 
-  private storeAppliedFilters(controls: InjectedControl[]) {
-    const filters: Record<string, StatFilterValue> = {};
-    controls.forEach((control) => {
-      filters[control.statId] = this.controlValue(control);
-    });
-
+  private storeAppliedFilters(query: TradeQuery) {
     try {
-      window.sessionStorage.setItem(APPLIED_STORAGE_KEY, JSON.stringify({filters, ts: Date.now()}));
+      const payload = {filters: queryToFilterMap(query), ts: Date.now()};
+      window.sessionStorage.setItem(APPLIED_STORAGE_KEY, JSON.stringify(payload));
     } catch (_error) {
       // sessionStorage unavailable — pre-tick falls back to the lazy API fetch.
     }

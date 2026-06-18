@@ -5,7 +5,30 @@ import {default as window} from 'ember-window-mock';
 import {beforeEach, afterEach, describe, it} from 'mocha';
 
 // Types
-import ApplyStatFilter from 'better-trading/services/item-results/enhancers/apply-stat-filter';
+import ApplyStatFilter, {queryToFilterMap} from 'better-trading/services/item-results/enhancers/apply-stat-filter';
+
+describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter | queryToFilterMap', () => {
+  it('captures the full and-group (pre-existing + newly applied) so all re-tick after Apply', () => {
+    const query = {
+      stats: [
+        {
+          type: 'and',
+          filters: [
+            {id: 'explicit.stat_518292764', value: {min: 4}}, // pre-existing (e.g. crit)
+            {id: 'explicit.stat_1940865751', value: {min: 60}}, // newly enabled this Apply
+          ],
+        },
+        // a non-'and' group is ignored (count/weight groups reuse ids with other semantics)
+        {type: 'count', filters: [{id: 'explicit.stat_999', value: {}}]},
+      ],
+    };
+
+    const map = queryToFilterMap(query);
+
+    expect(Object.keys(map)).to.have.members(['explicit.stat_518292764', 'explicit.stat_1940865751']);
+    expect(map['explicit.stat_518292764']).to.deep.equal({min: 4});
+  });
+});
 
 // A mod whose value span carries trade2's real stat id in data-field.
 const critMod = (value: string) =>
