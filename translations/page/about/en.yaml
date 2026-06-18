@@ -8,6 +8,7 @@ page:
       maximum-sockets: Warning for armors that cannot be 6-socketed (PoE 1 only)
       regroup-similars: Regroup similar results
       apply-stat-filter: Apply stat filters from results
+      copy-item: Copy item for Path of Building
     github:
       title: On GitHub
       description: This PoE 2 fork — to contribute, report issues or simply browse the code.
