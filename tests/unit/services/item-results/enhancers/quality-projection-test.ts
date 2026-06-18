@@ -1,7 +1,8 @@
 // Vendor
 import {expect} from 'chai';
-import {describe, it} from 'mocha';
+import {describe, it, beforeEach, afterEach} from 'mocha';
 import {default as window} from 'ember-window-mock';
+import {setupTest} from 'ember-mocha';
 
 // Subject
 import {
@@ -10,6 +11,7 @@ import {
   sumPhysIncreased,
   sumDefenceIncreased,
 } from 'better-trading/services/item-results/enhancers/quality-projection';
+import QualityProjection from 'better-trading/services/item-results/enhancers/quality-projection';
 
 // Build a detached item row whose mods are the given displayed mod-line strings.
 // Each `.item-mod` textContent matches the live trade2 rendering (roll-range label
@@ -91,6 +93,130 @@ describe('Unit | Services | ItemResults | Enhancers | QualityProjection', () => 
     it('attributes "increased Defences" to all three', () => {
       const row = rowWithMods(['10% increased Defences']);
       expect(sumDefenceIncreased(row)).to.deep.equal({ar: 10, ev: 10, es: 10});
+    });
+  });
+
+  describe('enhance', () => {
+    setupTest();
+
+    let service: QualityProjection;
+    let container: HTMLDivElement;
+
+    beforeEach(function () {
+      service = this.owner.lookup('service:item-results/enhancers/quality-projection');
+      container = window.document.createElement('div');
+      container.style.display = 'none';
+      window.document.body.prepend(container);
+    });
+
+    afterEach(() => container.remove());
+
+    // A weapon row: quality line (optional), a Physical Damage property, a DPS
+    // footer, and mod lines. Mirrors the live trade2 DOM.
+    const weaponRow = (
+      {quality, pdamage, dps, pdps, mods}: {quality: number | null; pdamage: string; dps: string; pdps: string; mods: string[]}
+    ): HTMLDivElement => {
+      const row = window.document.createElement('div');
+      const q =
+        quality == null
+          ? ''
+          : `<div class="item-property"><span data-field="quality"><span>Quality</span>: <span>+${quality}%</span></span></div>`;
+      const modHtml = mods.map((m) => `<div class="item-mod">${m}</div>`).join('');
+      row.innerHTML = `
+        ${q}
+        <div class="item-property"><span data-field="pdamage"><span>Physical Damage</span>: <span>${pdamage}</span></span></div>
+        ${modHtml}
+        <div class="itemPopupAdditional">
+          <span data-field="dps">DPS<span>${dps}</span></span>
+          <span data-field="pdps">Physical DPS<span>${pdps}</span></span>
+          <span data-field="edps">Elemental DPS<span>0</span></span>
+        </div>
+      `;
+      return row;
+    };
+
+    const armourRow = (
+      {quality, defs, mods}: {quality: number | null; defs: Partial<{ar: string; ev: string; es: string}>; mods: string[]}
+    ): HTMLDivElement => {
+      const row = window.document.createElement('div');
+      const q =
+        quality == null
+          ? ''
+          : `<div class="item-property"><span data-field="quality"><span>Quality</span>: <span>+${quality}%</span></span></div>`;
+      const labels: Record<string, string> = {ar: 'Armour', ev: 'Evasion Rating', es: 'Energy Shield'};
+      const defHtml = Object.entries(defs)
+        .map(([k, v]) => `<div class="item-property"><span data-field="${k}"><span>${labels[k]}</span>: <span>${v}</span></span></div>`)
+        .join('');
+      const modHtml = mods.map((m) => `<div class="item-mod">${m}</div>`).join('');
+      row.innerHTML = `${q}${defHtml}${modHtml}`;
+      return row;
+    };
+
+    const projectionOn = (root: Element, dataField: string): string | null => {
+      const span = root.querySelector(`[data-field="${dataField}"] .bt-quality-projection`);
+      return span ? (span.textContent || '').trim() : null;
+    };
+
+    it('projects weapon physical damage + DPS to 20% quality', () => {
+      const row = weaponRow({
+        quality: 0,
+        pdamage: '141-211',
+        dps: '295.4',
+        pdps: '295.4',
+        mods: ['P4 [110—134] + P6 [25—34]151% increased Physical Damage'],
+      });
+      container.appendChild(row);
+
+      service.enhance(row);
+
+      // factor = (120 + 151) / (100 + 0 + 151) = 1.0797
+      expect(projectionOn(row, 'pdamage')).to.equal('(→ 152-228 @20%)');
+      expect(projectionOn(row, 'pdps')).to.equal('(→ 318.9 @20%)');
+      // total dps gains only the physical delta (elemental unchanged)
+      expect(projectionOn(row, 'dps')).to.equal('(→ 318.9 @20%)');
+    });
+
+    it('does not project when quality is already at the cap', () => {
+      const row = weaponRow({quality: 20, pdamage: '180-270', dps: '518', pdps: '315', mods: ['168% increased Physical Damage']});
+      container.appendChild(row);
+
+      service.enhance(row);
+
+      expect(row.querySelectorAll('.bt-quality-projection').length).to.equal(0);
+    });
+
+    it('does not double-inject on a second enhance pass', () => {
+      const row = weaponRow({quality: 0, pdamage: '141-211', dps: '295.4', pdps: '295.4', mods: ['151% increased Physical Damage']});
+      container.appendChild(row);
+
+      service.enhance(row);
+      service.enhance(row);
+
+      expect(row.querySelectorAll('.bt-quality-projection').length).to.equal(3); // pdamage + pdps + dps, once each
+    });
+
+    it('projects each armour defence with its own increased-sum', () => {
+      const row = armourRow({
+        quality: 0,
+        defs: {ev: '34'},
+        mods: ["13% increased Evasion RatingFlea's (≥8)"],
+      });
+      container.appendChild(row);
+
+      service.enhance(row);
+
+      // factor = (120 + 13) / (100 + 0 + 13) = 1.177 -> 34 * 1.177 = 40
+      expect(projectionOn(row, 'ev')).to.equal('(→ 40 @20%)');
+    });
+
+    it('projects a no-increase armour base by the flat 20%', () => {
+      const row = armourRow({quality: 0, defs: {ar: '195', es: '57'}, mods: []});
+      container.appendChild(row);
+
+      service.enhance(row);
+
+      expect(projectionOn(row, 'ar')).to.equal('(→ 234 @20%)'); // 195 * 1.2
+      expect(projectionOn(row, 'es')).to.equal('(→ 68 @20%)'); // 57 * 1.2 = 68.4 -> 68
     });
   });
 });
