@@ -30,6 +30,12 @@ const ROLLED_VALUE_PATTERN = /[+\-]?\d+(?:\.\d+)?/;
 // A fixed mod (e.g. "[1] ... every 4 seconds") has a single number, no dash, so it
 // stays presence-only.
 const ROLL_RANGE_PATTERN = /\d+(?:\.\d+)?\s*[—–]\s*\d+(?:\.\d+)?/;
+// Some rollable explicit affixes have a single-value tier, so their label shows one
+// number with no dash — e.g. "+3 to Level of all Melee Skills" is labelled "S3 [3]".
+// These still filter by min/max on the trade site. The "P#"/"S#" prefix marks a
+// rolled prefix/suffix affix (vs. a fixed special mod like "[1] …every 4 seconds",
+// which has no such prefix), so treat a tiered + numeric mod as scalable too.
+const TIER_PREFIX_PATTERN = /^[PS]\d/;
 const TRADE_SEARCH_API = '/api/trade2/search/poe2';
 // "magnifying-glass" icon by Lorc — game-icons.net, CC BY 3.0. Foreground path only.
 const MAGNIFIER_ICON_PATH =
@@ -203,12 +209,18 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
 
       const statId = field.replace(/^stat\./, '');
       const statText = valueSpan.textContent || '';
-      // Scalable only when the mod is a rolled mod (its left label shows a value
-      // range) or a pseudo total. Fixed mods (e.g. "Cannot be Ignited", or
-      // "...every 4 seconds" labelled "[1]") get a presence-only checkbox.
+      // Scalable (gets min/max) when the mod is a pseudo total, a rolled affix whose
+      // label shows a value range, OR a tiered explicit affix (P#/S# prefix) that has
+      // a numeric value but a single-value tier label (e.g. "+3 to Level of all Melee
+      // Skills" / "S3 [3]") — these still filter by min/max on the trade site. Fixed
+      // mods (e.g. "Cannot be Ignited", or "[1] …every 4 seconds" — no prefix, or no
+      // numeric value) get a presence-only checkbox.
       const leftLabel = modElement.querySelector<HTMLElement>('.lc.l')?.textContent || '';
       const isPseudo = modElement.classList.contains('item-mod--pseudo') || modElement.classList.contains('pseudoMod');
-      const scalable = isPseudo || ROLL_RANGE_PATTERN.test(leftLabel);
+      const scalable =
+        isPseudo ||
+        ROLL_RANGE_PATTERN.test(leftLabel) ||
+        (TIER_PREFIX_PATTERN.test(leftLabel.trim()) && ROLLED_VALUE_PATTERN.test(statText));
 
       // Default min to the item's roll. Pre-enabling mods that are already part of
       // the current search happens lazily in ensureActiveFilters (so we don't issue

@@ -98,6 +98,27 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     expect(wrapper.querySelectorAll('.bt-apply-stat-filter-enabled').length).to.equal(1);
   });
 
+  it('treats a single-value tiered affix (e.g. +levels, "S3 [3]") as scalable with min/max', () => {
+    service.activeFilters = {};
+
+    // "+3 to Level of all Melee Skills" rolls one value per tier, so its label is a
+    // single number ("S3 [3]") with no dash — but it is still filterable by min/max.
+    container.insertAdjacentHTML(
+      'afterbegin',
+      '<div class="item-popup__content"><div class="item-mod item-mod--explicit"><span class="lc l">S3 [3]</span><span class="s lc" data-field="stat.explicit.stat_9187492">+3 to Level of all Melee Skills</span></div></div>'
+    );
+    const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
+
+    service.enhance(itemElement);
+
+    const wrapper = itemElement.querySelector('.bt-apply-stat-filter') as HTMLElement;
+    const min = wrapper.querySelector('input[data-bound="min"]') as HTMLInputElement;
+    const max = wrapper.querySelector('input[data-bound="max"]') as HTMLInputElement;
+    expect(min).to.be.an('HTMLInputElement'); // min/max present → scalable
+    expect(max).to.be.an('HTMLInputElement');
+    expect(min.value).to.equal('3'); // prefilled from the rolled +3
+  });
+
   it('pre-fills from + pre-enables a stat already filtered in the current search (by id)', () => {
     // crit mod's data-field is stat.explicit.stat_587431675
     service.activeFilters = {'explicit.stat_587431675': {min: 17, max: 40}};
