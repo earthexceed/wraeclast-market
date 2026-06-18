@@ -34,6 +34,13 @@ describe('Unit | Services | ItemResults | Enhancers | QualityProjection', () => 
     it('returns 0 when there is no quality line', () => {
       expect(parseQuality(rowWithMods([], {quality: null}))).to.equal(0);
     });
+
+    it('reads the value by anchoring on %, ignoring digits in the label', () => {
+      const row = window.document.createElement('div');
+      row.innerHTML =
+        '<div class="item-property"><span data-field="quality"><span>Quality (Tier 3 Modifiers)</span>: <span>+12%</span></span></div>';
+      expect(parseQuality(row)).to.equal(12);
+    });
   });
 
   describe('qualityFactor', () => {
@@ -41,6 +48,12 @@ describe('Unit | Services | ItemResults | Enhancers | QualityProjection', () => 
       expect(qualityFactor(0, 0)).to.equal(1.2); // pure base: full 20% gain
       expect(qualityFactor(0, 151)).to.be.closeTo(1.0797, 0.0005); // verified live
       expect(qualityFactor(10, 0)).to.be.closeTo(1.0909, 0.0005);
+      expect(qualityFactor(8, 100)).to.be.closeTo(1.0577, 0.0005); // quality + increases both non-zero
+    });
+
+    it('is exactly 1 at the cap (no gain to project)', () => {
+      expect(qualityFactor(20, 0)).to.equal(1);
+      expect(qualityFactor(20, 151)).to.equal(1);
     });
   });
 

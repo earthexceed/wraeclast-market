@@ -27,11 +27,14 @@ export interface DefenceIncreases {
 const modText = (root: Element): string =>
   Array.prototype.map.call(root.querySelectorAll('.item-mod'), (m: Element) => m.textContent || '').join('\n');
 
-// Read the item's quality percent (0 when there is no quality line).
+// Read the item's quality percent (0 when there is no quality line). Anchored on
+// the trailing "%" of the value ("+20%") rather than the first digit run, so a
+// label that itself contains a digit (e.g. "Quality (Tier 3 Modifiers)") can't be
+// mistaken for the value.
 export const parseQuality = (root: Element): number => {
   const span = root.querySelector('.item-property span[data-field="quality"]');
   if (!span) return 0;
-  const match = (span.textContent || '').match(/(\d+)/);
+  const match = (span.textContent || '').match(/(\d+)\s*%/);
   return match ? parseInt(match[1], 10) : 0;
 };
 
