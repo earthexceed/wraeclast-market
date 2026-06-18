@@ -7,6 +7,9 @@ import {ItemResultsEnhancerService} from 'better-trading/types/item-results';
 import IntlService from 'ember-intl/services/intl';
 import FlashMessages from 'ember-cli-flash/services/flash-messages';
 
+// Utilities
+import {buildGameIcon} from 'better-trading/utilities/game-icon';
+
 const COPIED_FEEDBACK_MS = 1500;
 const COPY_BUTTON_GAP_PX = 4;
 
@@ -34,7 +37,6 @@ const POB_IMPORTABLE_CATEGORIES = [
   'Quivers',
 ];
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
 // "papers" icon by Lorc — game-icons.net, CC BY 3.0. Foreground path only (the
 // original's solid background rect is dropped); rendered with currentColor.
 const PAPERS_ICON_PATH =
@@ -110,7 +112,7 @@ export default class CopyItem extends Service implements ItemResultsEnhancerServ
     const button = window.document.createElement('button');
     // standard button styles from pathofexile.com + our override
     button.classList.add('btn', 'btn-default', 'bt-copy-item-button');
-    button.appendChild(this.renderPapersIcon());
+    button.appendChild(buildGameIcon(PAPERS_ICON_PATH));
 
     // The label lives in its own span so feedback can swap the text without
     // wiping the icon.
@@ -122,24 +124,6 @@ export default class CopyItem extends Service implements ItemResultsEnhancerServ
     button.addEventListener('click', this.handleCopyClick);
 
     return button;
-  }
-
-  private renderPapersIcon(): SVGElement {
-    const svg = window.document.createElementNS(SVG_NS, 'svg');
-    svg.setAttribute('viewBox', '0 0 512 512');
-    svg.setAttribute('width', '13');
-    svg.setAttribute('height', '13');
-    svg.setAttribute('aria-hidden', 'true');
-    svg.setAttribute('focusable', 'false');
-    svg.style.fill = 'currentColor';
-    svg.style.verticalAlign = '-2px';
-    svg.style.marginRight = '5px';
-
-    const path = window.document.createElementNS(SVG_NS, 'path');
-    path.setAttribute('d', PAPERS_ICON_PATH);
-    svg.appendChild(path);
-
-    return svg;
   }
 
   // Updates only the text label, preserving the icon.

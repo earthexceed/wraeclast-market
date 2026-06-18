@@ -47,4 +47,4 @@ Don't forget to run `make help` to know more about the other commands.
 
 ## Credits
 
-- The "Copy for PoB" button uses the **papers** icon by [Lorc](https://lorcblog.blogspot.com/) from [game-icons.net](https://game-icons.net/), licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+- Button icons (**papers** on "Copy for PoB", **magnifying-glass** on "Apply") by [Lorc](https://lorcblog.blogspot.com/) from [game-icons.net](https://game-icons.net/), licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
