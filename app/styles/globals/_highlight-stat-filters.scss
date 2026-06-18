@@ -1,3 +1,28 @@
+// Mods matching an active stat filter get a vivid red highlight with a slow
+// pulsing glow + a red accent bar on the left edge, so they stand out at a glance.
 .bt-highlight-stat-filters {
-  background-color: rgba($gold-alt, 0.25);
+  background-color: rgba(214, 40, 40, 0.28);
+  box-shadow: inset 3px 0 0 0 #ff5252;
+  animation: bt-highlight-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes bt-highlight-pulse {
+  0%,
+  100% {
+    background-color: rgba(214, 40, 40, 0.2);
+    box-shadow: inset 3px 0 0 0 #ff5252, inset 0 0 6px rgba(255, 80, 80, 0.15);
+  }
+
+  50% {
+    background-color: rgba(235, 55, 55, 0.42);
+    box-shadow: inset 3px 0 0 0 #ff6b6b, inset 0 0 16px rgba(255, 90, 90, 0.5);
+  }
+}
+
+// Respect users who prefer reduced motion: keep the red highlight, drop the pulse.
+@media (prefers-reduced-motion: reduce) {
+  .bt-highlight-stat-filters {
+    animation: none;
+    background-color: rgba(214, 40, 40, 0.32);
+  }
 }
