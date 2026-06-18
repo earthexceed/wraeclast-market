@@ -13,10 +13,15 @@ import FlashMessages from 'ember-cli-flash/services/flash-messages';
 import {buildGameIcon} from 'better-trading/utilities/game-icon';
 
 // Constants
-// Only the rolled prefix/suffix (explicit) mods, plus the pseudo "total" lines — NOT
-// implicit / rune / enchant / corrupted mods (e.g. "Bonded:" rune stats, base implicits),
-// which aren't what you filter for when shopping an item's rolls.
-const MODS_SELECTOR = '.explicitMod,.pseudoMod,.item-mod--explicit,.item-mod--pseudo';
+// Filterable mods: the rolled prefix/suffix (explicit) mods, the pseudo "total"
+// lines, and the mods that are permanently bound to the item and still carry a real,
+// filterable trade stat id — fractured (Fracturing Orb), desecrated, and crafted
+// (bench) mods, whose value spans use `stat.fractured.*` / `stat.desecrated.*` /
+// `stat.crafted.*` ids (all verified filterable on trade2). We still exclude
+// implicit / rune / veiled mods: runes are swappable (not the item's own rolls),
+// implicits are base-determined, and veiled mods are unrevealed (no known stat yet).
+const MODS_SELECTOR =
+  '.explicitMod,.pseudoMod,.item-mod--explicit,.item-mod--pseudo,.item-mod--fractured,.item-mod--desecrated,.item-mod--crafted';
 // trade2 tags each mod's value span with its exact stat id, e.g.
 // data-field="stat.explicit.stat_2482852589" — this is the real id (correct
 // local/global variant), far more reliable than matching on display text.

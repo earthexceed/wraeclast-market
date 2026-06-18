@@ -119,6 +119,32 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     expect(min.value).to.equal('3'); // prefilled from the rolled +3
   });
 
+  it('filters fractured / desecrated / crafted mods (permanent item-bound stats)', () => {
+    service.activeFilters = {};
+
+    // These render with their own mod classes and `stat.fractured.*` / `stat.desecrated.*`
+    // / `stat.crafted.*` ids (all verified filterable on trade2). Each has a dash-range
+    // label, so each is scalable (min/max).
+    container.insertAdjacentHTML(
+      'afterbegin',
+      [
+        '<div class="item-popup__content">',
+        '<div class="item-mod item-mod--fractured"><span class="lc l">P9 [55—64]</span><span class="s lc" data-field="stat.fractured.stat_1050105434">+61 to maximum Mana</span></div>',
+        '<div class="item-mod item-mod--desecrated"><span class="lc l">S3 [25—27]</span><span class="s lc" data-field="stat.desecrated.stat_4080418644">+25 to Strength</span></div>',
+        '<div class="item-mod item-mod--crafted"><span class="lc l">S0 [10—15]</span><span class="s lc" data-field="stat.crafted.stat_1840985759">14% increased Area of Effect</span></div>',
+        '</div>',
+      ].join('')
+    );
+    const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
+
+    service.enhance(itemElement);
+
+    const controls = itemElement.querySelectorAll('.bt-apply-stat-filter');
+    expect(controls.length).to.equal(3); // all three classes are now filterable
+    // each got min/max inputs (dash-range labels → scalable)
+    expect(itemElement.querySelectorAll('.bt-apply-stat-filter input[data-bound="min"]').length).to.equal(3);
+  });
+
   it('pre-fills from + pre-enables a stat already filtered in the current search (by id)', () => {
     // crit mod's data-field is stat.explicit.stat_587431675
     service.activeFilters = {'explicit.stat_587431675': {min: 17, max: 40}};
