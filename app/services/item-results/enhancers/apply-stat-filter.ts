@@ -345,6 +345,7 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       });
 
       modElement.style.position = 'relative'; // anchor the right-aligned control
+      modElement.classList.add('bt-has-stat-filter'); // taller row so controls don't overlap
       modElement.appendChild(control.wrapper);
       const injected: InjectedControl = {
         statId,

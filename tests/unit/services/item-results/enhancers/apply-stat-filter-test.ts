@@ -114,6 +114,18 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     expect(itemElement.querySelectorAll('.bt-apply-stat-filter-button').length).to.equal(1);
   });
 
+  it('marks a controlled mod row with bt-has-stat-filter (taller row so controls do not overlap)', () => {
+    service.activeFilters = {};
+
+    container.insertAdjacentHTML('afterbegin', `<div class="item-popup__content">${critMod('14%')}</div>`);
+    const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
+
+    service.enhance(itemElement);
+
+    const mod = itemElement.querySelector('.item-mod--explicit') as HTMLElement;
+    expect(mod.classList.contains('bt-has-stat-filter')).to.equal(true);
+  });
+
   it('shows only the enable checkbox (no min/max) for presence mods with no numeric value', () => {
     service.activeFilters = {};
 

@@ -13,15 +13,30 @@
   // background so that text stays behind the controls instead of bleeding through
   // the gaps / the semi-transparent field.
   z-index: 2;
-  padding: 2px 4px;
+  padding: 0 4px;
   border-radius: 3px;
   background-color: rgba(8, 7, 5, 0.96);
+  // Pin the height to the control row. An inline-flex box otherwise renders a few px
+  // taller than its children here, which — combined with the tight ~18px mod-row
+  // height — made consecutive controls overlap. Kept compact (20px) so the mod rows
+  // barely grow past their native height.
+  box-sizing: border-box;
+  height: 20px;
+}
+
+// Mod rows that carry a control get a hair of vertical padding so the absolutely-
+// positioned, vertically-centred 20px control never spills into the neighbouring row,
+// while staying nearly as tight as the native ~18px row.
+.bt-has-stat-filter {
+  padding-top: 1px;
+  padding-bottom: 1px;
 }
 
 .bt-apply-stat-filter-field {
   display: inline-flex;
   align-items: stretch;
-  height: 20px;
+  box-sizing: border-box;
+  height: 18px;
   background-color: rgba(0, 0, 0, 0.45);
   border: 1px solid #6b6147;
   border-radius: 3px;
@@ -31,7 +46,7 @@
     width: 38px;
     padding: 0 4px;
     font-size: 11px;
-    line-height: 18px;
+    line-height: 16px;
     color: #fff;
     background: transparent;
     border: 0;
@@ -111,8 +126,9 @@
 .bt-apply-stat-filter-enabled {
   position: relative;
   align-self: center;
-  width: 20px;
-  height: 20px; // match the adjacent min/max field height
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px; // match the adjacent min/max field height
   margin: 0 4px;
   cursor: pointer;
   appearance: none;
