@@ -153,6 +153,10 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
   // recent Apply via sessionStorage). All other pre-checking comes from the network-free
   // form matcher (buildFormFilters / backfillFromForm).
   private activeFiltersFetched = false;
+  // The current search's query GET, fetched at most once per search and reused by Apply.
+  // Prefetched when the user hovers/focuses the Apply button so that by click time only the
+  // POST remains — halving the perceived Apply latency without adding any extra request.
+  private queryPromise: Promise<TradeQuery | null> | null = null;
 
   // NOTE: the render path is intentionally network-free. The trade2 page already fetches
   // the current search on load and GGG's rate limits are strict, so we never issue our own
@@ -164,6 +168,7 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     if (slug === this.cachedSlug) return; // same search — keep state
 
     this.cachedSlug = slug;
+    this.queryPromise = null; // new search → drop any prefetched query for the old one
 
     // Read the active stat filters straight from the search form (network-free) so we
     // can pre-tick matching mods on render — covers a plain top-bar Search.
@@ -449,6 +454,10 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     button.classList.add('btn', 'btn-default', 'bt-apply-stat-filter-button');
     button.appendChild(buildGameIcon(MAGNIFIER_ICON_PATH));
     button.appendChild(window.document.createTextNode(this.intl.t('item-results.apply-stat-filter.apply')));
+    // Prefetch the current-search query the moment the user shows intent (hover/focus), so
+    // by the time they click, Apply only has to POST — the GET is already in flight/done.
+    button.addEventListener('mouseenter', () => this.prefetchQuery());
+    button.addEventListener('focus', () => this.prefetchQuery());
     button.addEventListener('click', () => {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       this.handleApply(controls);
@@ -465,7 +474,8 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
 
     const encodedLeague = encodeURIComponent(poe2LeagueName(this.tradeLocation.league || ''));
 
-    const query = await this.loadQuery(encodedLeague, this.tradeLocation.slug);
+    // Reuses the prefetched GET (hover/focus) when available, so this usually doesn't block.
+    const query = await this.loadQuery();
     if (query === null) {
       // Rate-limited fetching the current query — abort before POSTing a stale/merge-less one.
       return this.flashMessages.alert(this.intl.t('item-results.apply-stat-filter.rate-limited'));
@@ -512,26 +522,56 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     }
   }
 
-  // Preserve the current search (category/rarity/existing filters) so Apply merges
-  // rather than replaces; fall back to a fresh query when there is no saved search.
-  // Returns the current search's query to merge into, a fresh empty query when there is no
-  // saved search, or null when the trade site rate-limits the fetch (so the caller aborts
-  // rather than POSTing a merge-less query).
-  private async loadQuery(encodedLeague: string, slug: string | null): Promise<TradeQuery | null> {
-    if (slug) {
-      try {
-        const response = await window.fetch(`${TRADE_SEARCH_API}/${encodedLeague}/${slug}`, {credentials: 'include'});
-        if (response.status === 429) return null;
-        if (response.ok) {
-          const current = ((await response.json()) as {query?: TradeQuery}).query;
-          if (current && Array.isArray(current.stats)) return current;
-        }
-      } catch (_error) {
-        // fall through to a fresh query
+  // Start the current-search query GET once (idempotent). Called on Apply-button hover/focus
+  // so the round-trip overlaps the user's intent; a failed fetch resets the cache so a later
+  // Apply can retry.
+  private prefetchQuery(): void {
+    if (this.queryPromise) return;
+    this.queryPromise = this.fetchQuery(this.tradeLocation.slug);
+    this.queryPromise.catch(() => {
+      this.queryPromise = null;
+    });
+  }
+
+  // GET the current search's query (API format, ready to re-POST). Returns the query to
+  // merge into, a fresh empty query when there is no saved search / the fetch fails, or null
+  // when the trade site rate-limits it (429) so the caller can abort + retry.
+  private async fetchQuery(slug: string | null): Promise<TradeQuery | null> {
+    const fresh = (): TradeQuery => ({status: {option: 'online'}, stats: [{type: 'and', filters: []}]});
+    if (!slug) return fresh();
+    try {
+      const encodedLeague = encodeURIComponent(poe2LeagueName(this.tradeLocation.league || ''));
+      const response = await window.fetch(`${TRADE_SEARCH_API}/${encodedLeague}/${slug}`, {credentials: 'include'});
+      if (response.status === 429) return null;
+      if (response.ok) {
+        const current = ((await response.json()) as {query?: TradeQuery}).query;
+        if (current && Array.isArray(current.stats)) return current;
       }
+    } catch (_error) {
+      // network error — fall through to a fresh query
+    }
+    return fresh();
+  }
+
+  // Resolve the current search query for Apply, reusing the prefetched GET when present (so
+  // Apply usually only has to POST). Preserves the current search (category/rarity/existing
+  // filters) by merging into it. Clones the result so mergeControls never mutates the cached
+  // query. Returns null only on a rate-limit, clearing the cache so a retry re-fetches.
+  private async loadQuery(): Promise<TradeQuery | null> {
+    if (!this.queryPromise) this.queryPromise = this.fetchQuery(this.tradeLocation.slug);
+
+    let result: TradeQuery | null;
+    try {
+      result = await this.queryPromise;
+    } catch (_error) {
+      result = null;
     }
 
-    return {status: {option: 'online'}, stats: [{type: 'and', filters: []}]};
+    if (result === null) {
+      this.queryPromise = null; // rate-limited / failed — let the next Apply retry
+      return null;
+    }
+    return JSON.parse(JSON.stringify(result)) as TradeQuery;
   }
 
   private mergeControls(query: TradeQuery, controls: InjectedControl[]) {
