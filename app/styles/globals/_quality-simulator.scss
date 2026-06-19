@@ -1,0 +1,68 @@
+// Quality simulator box injected below a ring/amulet's type line.
+.bt-qs {
+  margin: 4px 10px 6px;
+}
+
+.bt-qs-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 4px 8px;
+}
+
+.bt-qs-label {
+  color: #9fd49f;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+}
+
+.bt-qs-category {
+  box-sizing: border-box;
+  height: 22px;
+  color: #e8d9a0;
+  background-color: #15170f;
+  border: 1px solid #6b6147;
+  border-radius: 3px;
+  font-size: 12px;
+  padding: 0 6px;
+}
+
+// Quick-pick quality % buttons.
+.bt-qs-presets {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.bt-qs-preset {
+  box-sizing: border-box;
+  height: 22px;
+  min-width: 30px;
+  padding: 0 7px;
+  color: #c9c2a6;
+  background-color: #15170f;
+  border: 1px solid #6b6147;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #e8c873;
+    color: #e8d9a0;
+  }
+
+  &.bt-qs-on {
+    color: #1a1505;
+    background-color: #e8c873;
+    border-color: #e8c873;
+    font-weight: bold;
+  }
+}
+
+// Scaled mod numbers — green, matching the quality-projection green family.
+.bt-qs-scaled {
+  color: #7fc77f;
+  font-weight: bold;
+}

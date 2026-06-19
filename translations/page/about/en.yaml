@@ -10,6 +10,7 @@ page:
       apply-stat-filter: Apply stat filters from results
       copy-item: Copy item for Path of Building
       quality-projection: Show stats projected to 20% quality
+      quality-simulator: Simulate quality on rings & amulets
     github:
       title: On GitHub
       description: This PoE 2 fork — to contribute, report issues or simply browse the code.

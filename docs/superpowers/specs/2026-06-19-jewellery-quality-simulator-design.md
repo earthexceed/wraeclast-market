@@ -42,8 +42,12 @@ Lightning/Chaos) and crit folds into Attack or Caster.
 affected_value = base_roll × (1 + Quality/100)
 ```
 
-Caps: 20% on normal jewellery, 50% on Breach rings. Only one quality category is
-active on an item at a time.
+Caps (verified on poe2db): base jewellery quality caps at **20%**. The "Essence of the
+Breach" currency adds a "+20% to Maximum Quality" prefix to a ring or amulet (→ 40%), and
+a **Breach Ring**'s implicit adds a further "+20% to Maximum Quality". So the realistic
+maxima are **amulet 40%** (base + Essence) and **ring 60%** (base + Breach implicit +
+Essence). Only one quality category is active on an item at a time. The simulator's
+quick-pick presets are sized to these caps per kind.
 
 **Many-to-many tagging:** a single mod can carry several category tags and is therefore
 boostable by several catalysts. Examples:
