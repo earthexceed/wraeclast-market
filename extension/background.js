@@ -24,3 +24,13 @@ extensionApi.runtime.onMessage.addListener(function(request, sender, sendRespons
     return true;
   }
 });
+
+// On first install and on every update, open the changelog / "what's new" page in a new
+// tab. chrome.tabs.create with a URL needs no extra permission, and the extension can open
+// its own packaged page directly. changelog.html is shipped by scripts/scaffold-extension.js
+// (it copies every file in extension/ into the build output).
+extensionApi.runtime.onInstalled.addListener(function(details) {
+  if (details.reason === 'install' || details.reason === 'update') {
+    extensionApi.tabs.create({url: extensionApi.runtime.getURL('changelog.html')});
+  }
+});
