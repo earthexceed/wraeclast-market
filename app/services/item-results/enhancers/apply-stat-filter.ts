@@ -83,6 +83,16 @@ interface TradeQuery {
   filters?: object;
 }
 
+// Variant-source mods (fractured / desecrated / crafted) carry the SAME stat number
+// as the plain explicit version, just under a different namespace — and trade2's
+// `explicit.*` filter is the BROAD one that matches the stat from ANY source
+// (verified live: crafted-mod items show up under the explicit filter). So normalise
+// these to `explicit.` for filtering; a `crafted.*`/`fractured.*` filter would match
+// only that one source and miss most items. Every filterable variant stat also has an
+// explicit entry (checked against /data/stats), so the normalised id is always valid.
+export const normalizeStatId = (field: string): string =>
+  field.replace(/^stat\./, '').replace(/^(?:fractured|desecrated|crafted)\./, 'explicit.');
+
 // Flatten a query's and-group into a {statId: value} map. Used to persist the FULL
 // applied search (pre-existing filters + the ones just enabled) for post-reload
 // pre-ticking — storing only the toggled controls misses filters the search already
@@ -226,7 +236,7 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       const field = valueSpan && valueSpan.dataset.field;
       if (!valueSpan || !field) return;
 
-      const statId = field.replace(/^stat\./, '');
+      const statId = normalizeStatId(field);
       const statText = valueSpan.textContent || '';
       // Scalable (gets min/max) when the mod is a pseudo total, a rolled affix whose
       // label shows a value range, OR a tiered explicit affix (P#/S# prefix) that has

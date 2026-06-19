@@ -5,7 +5,24 @@ import {default as window} from 'ember-window-mock';
 import {beforeEach, afterEach, describe, it} from 'mocha';
 
 // Types
-import ApplyStatFilter, {queryToFilterMap} from 'better-trading/services/item-results/enhancers/apply-stat-filter';
+import ApplyStatFilter, {
+  queryToFilterMap,
+  normalizeStatId,
+} from 'better-trading/services/item-results/enhancers/apply-stat-filter';
+
+describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter | normalizeStatId', () => {
+  it('normalizes variant-source namespaces to explicit (the broad filter that matches any source)', () => {
+    // same stat number across sources; explicit.* is the broad filter on trade2
+    expect(normalizeStatId('stat.fractured.stat_1940865751')).to.equal('explicit.stat_1940865751');
+    expect(normalizeStatId('stat.desecrated.stat_1509134228')).to.equal('explicit.stat_1509134228');
+    expect(normalizeStatId('stat.crafted.stat_3035140377')).to.equal('explicit.stat_3035140377');
+  });
+
+  it('leaves explicit and pseudo namespaces unchanged', () => {
+    expect(normalizeStatId('stat.explicit.stat_123')).to.equal('explicit.stat_123');
+    expect(normalizeStatId('stat.pseudo.stat_456')).to.equal('pseudo.stat_456');
+  });
+});
 
 describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter | queryToFilterMap', () => {
   it('captures the full and-group (pre-existing + newly applied) so all re-tick after Apply', () => {
