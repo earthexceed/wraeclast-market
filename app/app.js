@@ -12,11 +12,27 @@ import config from './config/environment';
 const isExtensionContextInvalidated = (reason) =>
   Boolean(reason) && /Extension context invalidated/i.test(reason.message || String(reason));
 
+// Once the context is gone, chrome.runtime.id is undefined (or throws on access). Some
+// orphaned calls then fail with a plain TypeError that doesn't mention the invalidation —
+// e.g. chrome.storage becomes undefined, so storage reads throw "Cannot read properties
+// of undefined (reading 'local')". Detect the orphaned state directly so those variants
+// are suppressed too; a healthy context always has a runtime id, so real errors surface.
+const isContextOrphaned = () => {
+  try {
+    const api = typeof chrome !== 'undefined' ? chrome : typeof browser !== 'undefined' ? browser : null;
+    return !(api && api.runtime && api.runtime.id);
+  } catch (_error) {
+    return true;
+  }
+};
+
+const isOrphanError = (reason) => isExtensionContextInvalidated(reason) || isContextOrphaned();
+
 window.addEventListener('unhandledrejection', (event) => {
-  if (isExtensionContextInvalidated(event.reason)) event.preventDefault();
+  if (isOrphanError(event.reason)) event.preventDefault();
 });
 window.addEventListener('error', (event) => {
-  if (isExtensionContextInvalidated(event.error || event.message)) event.preventDefault();
+  if (isOrphanError(event.error || event.message)) event.preventDefault();
 });
 
 // Initialize the extension root container
