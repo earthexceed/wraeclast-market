@@ -459,17 +459,25 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     button.addEventListener('mouseenter', () => this.prefetchQuery());
     button.addEventListener('focus', () => this.prefetchQuery());
     button.addEventListener('click', () => {
+      if (button.classList.contains('bt-is-loading')) return; // block double-apply / spam
+      button.classList.add('bt-is-loading');
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      this.handleApply(controls);
+      this.handleApply(controls).then((applied) => {
+        // On success the page navigates away, so leave the spinner up; restore only on a bail.
+        if (!applied) button.classList.remove('bt-is-loading');
+      });
     });
 
     return button;
   }
 
-  private async handleApply(controls: InjectedControl[]) {
+  // Returns true once it has initiated navigation to the new search (success), false on any
+  // bail (nothing enabled, rate-limited, error) so the caller can drop the loading state.
+  private async handleApply(controls: InjectedControl[]): Promise<boolean> {
     const enabled = controls.filter((control) => control.enabledInput.checked);
     if (enabled.length === 0) {
-      return this.flashMessages.alert(this.intl.t('item-results.apply-stat-filter.none-enabled'));
+      this.flashMessages.alert(this.intl.t('item-results.apply-stat-filter.none-enabled'));
+      return false;
     }
 
     const encodedLeague = encodeURIComponent(poe2LeagueName(this.tradeLocation.league || ''));
@@ -478,7 +486,8 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     const query = await this.loadQuery();
     if (query === null) {
       // Rate-limited fetching the current query — abort before POSTing a stale/merge-less one.
-      return this.flashMessages.alert(this.intl.t('item-results.apply-stat-filter.rate-limited'));
+      this.flashMessages.alert(this.intl.t('item-results.apply-stat-filter.rate-limited'));
+      return false;
     }
     this.mergeControls(query, enabled);
 
@@ -498,10 +507,12 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     }
 
     if (rateLimited) {
-      return this.flashMessages.alert(this.intl.t('item-results.apply-stat-filter.rate-limited'));
+      this.flashMessages.alert(this.intl.t('item-results.apply-stat-filter.rate-limited'));
+      return false;
     }
     if (!searchId) {
-      return this.flashMessages.alert(this.intl.t('general.generic-alert-flash'));
+      this.flashMessages.alert(this.intl.t('general.generic-alert-flash'));
+      return false;
     }
 
     // Remember the FULL applied query (pre-existing filters + the ones we just
@@ -511,6 +522,7 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     this.storeAppliedFilters(query);
 
     window.location.href = `/trade2/search/poe2/${encodedLeague}/${searchId}`;
+    return true;
   }
 
   private storeAppliedFilters(query: TradeQuery) {

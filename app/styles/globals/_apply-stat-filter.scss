@@ -167,6 +167,37 @@
   padding: 2px 0;
 }
 
+// While an Apply is in flight: block further clicks and swap the label for a spinner.
+.bt-apply-stat-filter-button.bt-is-loading {
+  cursor: progress;
+  pointer-events: none;
+  color: transparent; // hide the "Apply" text node
+
+  svg {
+    visibility: hidden; // hide the magnifier icon
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    margin: -6px 0 0 -6px;
+    border: 2px solid rgba(232, 200, 115, 0.35);
+    border-top-color: #e8c873;
+    border-radius: 50%;
+    animation: bt-apply-spin 0.6s linear infinite;
+  }
+}
+
+@keyframes bt-apply-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 // Toggle that collapses/shows the filter column (so it stops covering long mods). Anchored
 // to the first controlled mod and pinned just above its control via a negative top.
 .bt-filter-toggle {
