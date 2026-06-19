@@ -1,6 +1,6 @@
 {
   "name": "better-trading",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "changelog": "poe2-fork",
   "private": true,
   "directories": {
@@ -9,7 +9,7 @@
   },
   "manifest": {
     "name": "Wraeclast Market — PoE & PoE2 Trade Tool",
-    "description": "PoE & PoE2 trade-site tools: bookmarks, equivalent prices (poe.ninja), searched-mod highlighting, stat filters and more."
+    "description": "PoE & PoE2 trade tools: stat filters, quality simulator, PoB export, poe.ninja prices, mod highlighting, bookmarks & more."
   },
   "repository": "https://github.com/earthexceed/wraeclast-market",
   "engine-strict": true,
