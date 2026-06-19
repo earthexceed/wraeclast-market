@@ -149,33 +149,29 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
   private formFilters: FormFilter[] = [];
 
   private cachedSlug: string | null = null;
-  // Whether we've already fetched the active filters for the current search.
+  // Whether the current search's active filters are already known (restored from our own
+  // recent Apply via sessionStorage). All other pre-checking comes from the network-free
+  // form matcher (buildFormFilters / backfillFromForm).
   private activeFiltersFetched = false;
-  // Every control rendered for the current search, so a deferred active-filters
-  // fetch can back-fill them once the user actually engages the filter UI.
-  private pageControls: InjectedControl[] = [];
 
-  // NOTE: intentionally does NOT hit the network. The trade2 page already fetches
-  // the current search when it loads, and GGG's rate limits are strict — issuing a
-  // duplicate GET on every search would burn the user's quota twice as fast and
-  // trigger "Rate limit exceeded". We instead defer the fetch until the user first
-  // interacts with an injected control (see ensureActiveFilters), so passive
-  // browsing adds zero extra trade2 requests.
+  // NOTE: the render path is intentionally network-free. The trade2 page already fetches
+  // the current search on load and GGG's rate limits are strict, so we never issue our own
+  // GET just to render — pre-checking reads the search form's filters straight from the DOM
+  // (buildFormFilters), and right after our own Apply from a sessionStorage snapshot. The
+  // only trade2 request we make is the GET+POST inside handleApply, on explicit user action.
   prepare() {
     const slug = this.tradeLocation.slug || null;
     if (slug === this.cachedSlug) return; // same search — keep state
 
     this.cachedSlug = slug;
-    this.pageControls = [];
 
     // Read the active stat filters straight from the search form (network-free) so we
-    // can pre-tick matching mods on render — covers a plain top-bar Search, which has
-    // neither a fresh Apply nor any interaction to trigger the lazy API fetch below.
+    // can pre-tick matching mods on render — covers a plain top-bar Search.
     this.formFilters = this.buildFormFilters();
 
-    // If we just applied (a fresh "pending" entry exists), restore those filters so
-    // the controls pre-tick on render — no network call. Otherwise defer to the lazy
-    // API fetch on first interaction.
+    // If we just applied (a fresh "pending" entry exists), restore those filters so the
+    // controls pre-tick on render — no network call. Otherwise pre-checking relies on the
+    // network-free form matcher above.
     const stored = this.readStoredApplied();
     if (stored) {
       this.activeFilters = stored;
@@ -198,22 +194,6 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     } catch (_error) {
       return null;
     }
-  }
-
-  // Fetch the current search's active filters at most once per search, lazily, and
-  // back-fill the already-rendered controls (pre-enable + pre-fill mods that are
-  // part of the current filter). Triggered by the first user interaction.
-  private async ensureActiveFilters() {
-    if (this.activeFiltersFetched) return;
-    this.activeFiltersFetched = true; // optimistic: avoid concurrent fetches
-
-    const slug = this.cachedSlug;
-    if (!slug) return;
-
-    const encodedLeague = encodeURIComponent(poe2LeagueName(this.tradeLocation.league || ''));
-    this.activeFilters = await this.fetchActiveFilters(encodedLeague, slug);
-
-    this.pageControls.forEach((control) => this.backfillControl(control));
   }
 
   // Build the matchers for the search form's active stat filters: turn each stat
@@ -278,28 +258,6 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     control.wrapper.classList.add('bt-is-enabled');
   }
 
-  private async fetchActiveFilters(encodedLeague: string, slug: string): Promise<Record<string, StatFilterValue>> {
-    const map: Record<string, StatFilterValue> = {};
-    try {
-      const response = await window.fetch(`${TRADE_SEARCH_API}/${encodedLeague}/${slug}`, {credentials: 'include'});
-      if (!response.ok) return map;
-      const query = ((await response.json()) as {query?: TradeQuery}).query;
-      if (query && Array.isArray(query.stats)) {
-        // Only the 'and' group is where we read/write filters; other group types
-        // (weight/count/if/not) legitimately reuse stat ids with different value
-        // semantics, so flat-mapping across all groups would mis-key the map.
-        const andGroup = query.stats.find((group) => group.type === 'and');
-        (andGroup?.filters || []).forEach((filter) => {
-          if (filter && filter.id) map[filter.id] = filter.value || {};
-        });
-      }
-    } catch (_error) {
-      // leave map empty
-    }
-
-    return map;
-  }
-
   enhance(itemElement: HTMLElement) {
     const modElements = itemElement.querySelectorAll<HTMLElement>(MODS_SELECTOR);
     const controls: InjectedControl[] = [];
@@ -326,20 +284,14 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
         ROLL_RANGE_PATTERN.test(leftLabel) ||
         (TIER_PREFIX_PATTERN.test(leftLabel.trim()) && ROLLED_VALUE_PATTERN.test(statText));
 
-      // Default min to the item's roll. Pre-enabling mods that are already part of
-      // the current search happens lazily in ensureActiveFilters (so we don't issue
-      // a trade2 request just to render the page).
+      // Default min to the item's roll. Mods already part of the current search are
+      // pre-enabled/pre-filled network-free (backfillFromForm + the post-Apply snapshot),
+      // so there's no trade2 request just to render the page.
       const minValue = scalable ? this.rolledValue(statText) : '';
 
       const control = this.renderControl(scalable, minValue, '');
 
-      // The first time the user touches any control, fetch the active filters once
-      // and back-fill them; mark inputs as touched so that back-fill never overwrites
-      // a value the user has typed.
-      control.wrapper.addEventListener('focusin', () => {
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        this.ensureActiveFilters();
-      });
+      // Mark inputs as touched on edit so back-fill never overwrites a value the user typed.
       [control.minInput, control.maxInput].forEach((input) => {
         if (input) input.addEventListener('input', () => (input.dataset.btTouched = 'true'));
       });
@@ -355,7 +307,6 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
         wrapper: control.wrapper,
       };
       controls.push(injected);
-      this.pageControls.push(injected);
       // If the active filters are already known (restored from our own Apply), tick
       // this control immediately — no need to wait for the user to interact.
       if (this.activeFiltersFetched) this.backfillControl(injected);
@@ -515,9 +466,14 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     const encodedLeague = encodeURIComponent(poe2LeagueName(this.tradeLocation.league || ''));
 
     const query = await this.loadQuery(encodedLeague, this.tradeLocation.slug);
+    if (query === null) {
+      // Rate-limited fetching the current query — abort before POSTing a stale/merge-less one.
+      return this.flashMessages.alert(this.intl.t('item-results.apply-stat-filter.rate-limited'));
+    }
     this.mergeControls(query, enabled);
 
     let searchId: string | null = null;
+    let rateLimited = false;
     try {
       const response = await window.fetch(`${TRADE_SEARCH_API}/${encodedLeague}`, {
         method: 'POST',
@@ -525,11 +481,15 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
         credentials: 'include',
         body: JSON.stringify({query, sort: {price: 'asc'}}),
       });
-      if (response.ok) searchId = ((await response.json()) as {id?: string}).id || null;
+      if (response.status === 429) rateLimited = true;
+      else if (response.ok) searchId = ((await response.json()) as {id?: string}).id || null;
     } catch (_error) {
       searchId = null;
     }
 
+    if (rateLimited) {
+      return this.flashMessages.alert(this.intl.t('item-results.apply-stat-filter.rate-limited'));
+    }
     if (!searchId) {
       return this.flashMessages.alert(this.intl.t('general.generic-alert-flash'));
     }
@@ -554,10 +514,14 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
 
   // Preserve the current search (category/rarity/existing filters) so Apply merges
   // rather than replaces; fall back to a fresh query when there is no saved search.
-  private async loadQuery(encodedLeague: string, slug: string | null): Promise<TradeQuery> {
+  // Returns the current search's query to merge into, a fresh empty query when there is no
+  // saved search, or null when the trade site rate-limits the fetch (so the caller aborts
+  // rather than POSTing a merge-less query).
+  private async loadQuery(encodedLeague: string, slug: string | null): Promise<TradeQuery | null> {
     if (slug) {
       try {
         const response = await window.fetch(`${TRADE_SEARCH_API}/${encodedLeague}/${slug}`, {credentials: 'include'});
+        if (response.status === 429) return null;
         if (response.ok) {
           const current = ((await response.json()) as {query?: TradeQuery}).query;
           if (current && Array.isArray(current.stats)) return current;

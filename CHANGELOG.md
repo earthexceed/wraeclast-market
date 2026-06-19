@@ -23,6 +23,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Apply now makes fewer trade-site requests (dropped a redundant search fetch and the
+  passive on-focus fetch), reducing GGG "Rate limit exceeded" errors; if a request is
+  still rate-limited, Apply shows a clear "wait ~60s" message instead of failing silently.
 - Suppress the benign "orphaned content script" console errors that appear after the
   extension is reloaded or updated while a trade page is open.
 

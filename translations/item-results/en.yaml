@@ -11,6 +11,7 @@ item-results:
     enable: Enable this mod for Apply
     none-enabled: Enable at least one mod (checkbox) before applying.
     toggle: Show / hide the filter controls
+    rate-limited: The trade site is rate-limiting requests. Wait ~60 seconds and try Apply again.
   copy-item:
     button: Copy for PoB
     copied: ✓ Copied

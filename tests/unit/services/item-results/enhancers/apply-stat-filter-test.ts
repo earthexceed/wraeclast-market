@@ -230,8 +230,11 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
   });
 
   it('pre-fills from + pre-enables a stat already filtered in the current search (by id)', () => {
-    // crit mod's data-field is stat.explicit.stat_587431675
+    // crit mod's data-field is stat.explicit.stat_587431675. activeFiltersFetched=true
+    // mirrors the post-Apply state (filters restored from sessionStorage), where the
+    // id-based backfill runs.
     service.activeFilters = {'explicit.stat_587431675': {min: 17, max: 40}};
+    (service as any).activeFiltersFetched = true;
 
     container.insertAdjacentHTML('afterbegin', `<div class="item-popup__content">${critMod('19%')}</div>`);
     const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
