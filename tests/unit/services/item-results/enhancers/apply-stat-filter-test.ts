@@ -114,6 +114,27 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     expect(itemElement.querySelectorAll('.bt-apply-stat-filter-button').length).to.equal(1);
   });
 
+  it('injects a top toggle that collapses + restores the filter column', () => {
+    service.activeFilters = {};
+
+    container.insertAdjacentHTML('afterbegin', `<div class="item-popup__content">${critMod('14%')}</div>`);
+    const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
+
+    service.enhance(itemElement);
+
+    const toggle = itemElement.querySelector('.bt-filter-toggle') as HTMLButtonElement;
+    expect(toggle).to.be.an('HTMLButtonElement');
+    expect(itemElement.classList.contains('bt-filters-collapsed')).to.equal(false);
+
+    toggle.click(); // hide the controls
+    expect(itemElement.classList.contains('bt-filters-collapsed')).to.equal(true);
+    expect(toggle.classList.contains('bt-is-collapsed')).to.equal(true);
+
+    toggle.click(); // show them again
+    expect(itemElement.classList.contains('bt-filters-collapsed')).to.equal(false);
+    expect(toggle.classList.contains('bt-is-collapsed')).to.equal(false);
+  });
+
   it('marks a controlled mod row with bt-has-stat-filter (taller row so controls do not overlap)', () => {
     service.activeFilters = {};
 

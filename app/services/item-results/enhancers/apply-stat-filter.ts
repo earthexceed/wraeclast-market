@@ -379,6 +379,38 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     const offsetTop = anchorMod.getBoundingClientRect().bottom - modContainer.getBoundingClientRect().top;
     button.style.top = `${offsetTop + 4}px`;
     modContainer.appendChild(button);
+
+    // A small toggle at the top-right that collapses/shows the whole filter column, so the
+    // right-aligned controls can be tucked away when they cover long mod text.
+    modContainer.appendChild(this.renderFilterToggle(modContainer));
+  }
+
+  // Eye-icon button pinned to the top-right of the result; toggles `bt-filters-collapsed`
+  // on the mod container, which (via CSS) hides every injected control + the Apply button
+  // so the underlying mod text is fully readable. The toggle itself stays visible.
+  private renderFilterToggle(modContainer: HTMLElement): HTMLButtonElement {
+    const button = window.document.createElement('button');
+    button.type = 'button';
+    button.classList.add('bt-filter-toggle');
+    button.title = this.intl.t('item-results.apply-stat-filter.toggle');
+
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const icon = window.document.createElementNS(svgNs, 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    const path = window.document.createElementNS(svgNs, 'path');
+    path.setAttribute(
+      'd',
+      'M12 5C6.5 5 2.7 9.6 1.5 12c1.2 2.4 5 7 10.5 7s9.3-4.6 10.5-7C21.3 9.6 17.5 5 12 5zm0 12a5 5 0 110-10 5 5 0 010 10zm0-2.3a2.7 2.7 0 100-5.4 2.7 2.7 0 000 5.4z'
+    );
+    icon.appendChild(path);
+    button.appendChild(icon);
+
+    button.addEventListener('click', () => {
+      const collapsed = modContainer.classList.toggle('bt-filters-collapsed');
+      button.classList.toggle('bt-is-collapsed', collapsed);
+    });
+
+    return button;
   }
 
   private rolledValue(statText: string): string {

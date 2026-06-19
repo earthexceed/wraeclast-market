@@ -166,3 +166,47 @@
   right: 6px;
   padding: 2px 0;
 }
+
+// Top-right toggle that collapses/shows the filter column (so it stops covering long mods).
+.bt-filter-toggle {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background-color: rgba(8, 7, 5, 0.92);
+  border: 1px solid #6b6147;
+  border-radius: 3px;
+  cursor: pointer;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    fill: #c9c2a6;
+  }
+
+  &:hover {
+    border-color: #e8c873;
+  }
+
+  &:hover svg {
+    fill: #e8c873;
+  }
+
+  // Collapsed state: dim the eye so it reads as "filters hidden".
+  &.bt-is-collapsed svg {
+    fill: #6b6147;
+  }
+}
+
+// When collapsed, hide every injected control + the Apply button (but not the toggle),
+// revealing the full mod text underneath.
+.bt-filters-collapsed .bt-apply-stat-filter,
+.bt-filters-collapsed .bt-apply-stat-filter-button {
+  display: none;
+}
