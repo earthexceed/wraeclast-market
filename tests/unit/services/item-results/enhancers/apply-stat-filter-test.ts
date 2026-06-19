@@ -8,6 +8,7 @@ import {beforeEach, afterEach, describe, it} from 'mocha';
 import ApplyStatFilter, {
   queryToFilterMap,
   normalizeStatId,
+  normalizeNamespace,
 } from 'better-trading/services/item-results/enhancers/apply-stat-filter';
 
 describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter | normalizeStatId', () => {
@@ -21,6 +22,16 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter | normaliz
   it('leaves explicit and pseudo namespaces unchanged', () => {
     expect(normalizeStatId('stat.explicit.stat_123')).to.equal('explicit.stat_123');
     expect(normalizeStatId('stat.pseudo.stat_456')).to.equal('pseudo.stat_456');
+  });
+});
+
+describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter | normalizeNamespace', () => {
+  it('collapses variant-source namespaces to explicit (the broad filter), leaves the rest', () => {
+    expect(normalizeNamespace('fractured')).to.equal('explicit');
+    expect(normalizeNamespace('desecrated')).to.equal('explicit');
+    expect(normalizeNamespace('crafted')).to.equal('explicit');
+    expect(normalizeNamespace('explicit')).to.equal('explicit');
+    expect(normalizeNamespace('pseudo')).to.equal('pseudo');
   });
 });
 
@@ -204,6 +215,83 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     // already filtered → pre-enabled (checked + not dimmed)
     expect(enabled.checked).to.equal(true);
     expect(wrapper.classList.contains('bt-is-enabled')).to.equal(true);
+  });
+
+  // The search form's active filter, as buildFormFilters() would produce it.
+  const physDamageFormFilter = (namespace: string | null, value: {min?: number; max?: number} = {min: 80}) => ({
+    namespace,
+    needle: /[+\-]?\d+% increased Physical Damage/i,
+    value,
+  });
+
+  const physDamageMod = (rolled: string) =>
+    `<div class="item-popup__content"><div class="item-mod item-mod--explicit"><span class="lc l">P2 [80—160]</span><span class="s lc" data-field="stat.explicit.stat_1509134228">${rolled} increased Physical Damage</span></div></div>`;
+
+  it('pre-checks + pre-fills a mod the search form already filters on — no Apply or interaction needed', () => {
+    // A plain top-bar Search: no fresh Apply (activeFilters empty, not fetched), but
+    // the form carries an explicit "#% increased Physical Damage" min 80 filter.
+    service.activeFilters = {};
+    (service as any).activeFiltersFetched = false;
+    (service as any).formFilters = [physDamageFormFilter('explicit', {min: 80})];
+
+    container.insertAdjacentHTML('afterbegin', physDamageMod('164%'));
+    const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
+
+    service.enhance(itemElement);
+
+    const wrapper = itemElement.querySelector('.bt-apply-stat-filter') as HTMLElement;
+    const enabled = wrapper.querySelector('.bt-apply-stat-filter-enabled') as HTMLInputElement;
+    const min = wrapper.querySelector('input[data-bound="min"]') as HTMLInputElement;
+    expect(enabled.checked).to.equal(true);
+    expect(wrapper.classList.contains('bt-is-enabled')).to.equal(true);
+    expect(min.value).to.equal('80'); // the search's min wins over the rolled 164
+  });
+
+  it('matches a variant-source mod via the broad explicit form filter (crafted/fractured → explicit)', () => {
+    service.activeFilters = {};
+    (service as any).activeFiltersFetched = false;
+    (service as any).formFilters = [physDamageFormFilter('explicit', {min: 80})];
+
+    // A crafted "increased Physical Damage" mod — its id normalizes to explicit, so the
+    // explicit form filter (which is broad on trade2) should still pre-check it.
+    container.insertAdjacentHTML(
+      'afterbegin',
+      '<div class="item-popup__content"><div class="item-mod item-mod--crafted"><span class="lc l">S0 [10—20]</span><span class="s lc" data-field="stat.crafted.stat_1509134228">15% increased Physical Damage</span></div></div>'
+    );
+    const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
+
+    service.enhance(itemElement);
+
+    const enabled = itemElement.querySelector('.bt-apply-stat-filter-enabled') as HTMLInputElement;
+    expect(enabled.checked).to.equal(true);
+  });
+
+  it('does NOT pre-check when the form filter namespace differs from the mod (pseudo filter vs explicit mod)', () => {
+    service.activeFilters = {};
+    (service as any).activeFiltersFetched = false;
+    (service as any).formFilters = [physDamageFormFilter('pseudo', {min: 80})];
+
+    container.insertAdjacentHTML('afterbegin', physDamageMod('164%'));
+    const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
+
+    service.enhance(itemElement);
+
+    const enabled = itemElement.querySelector('.bt-apply-stat-filter-enabled') as HTMLInputElement;
+    expect(enabled.checked).to.equal(false); // an explicit mod is not the pseudo total
+  });
+
+  it('leaves mods the form does not filter on unchecked', () => {
+    service.activeFilters = {};
+    (service as any).activeFiltersFetched = false;
+    (service as any).formFilters = [physDamageFormFilter('explicit', {min: 80})];
+
+    container.insertAdjacentHTML('afterbegin', `<div class="item-popup__content">${critMod('14%')}</div>`);
+    const itemElement = container.querySelector('.item-popup__content') as HTMLElement;
+
+    service.enhance(itemElement);
+
+    const enabled = itemElement.querySelector('.bt-apply-stat-filter-enabled') as HTMLInputElement;
+    expect(enabled.checked).to.equal(false);
   });
 
   it('steps the value with the custom up/down spinners and clamps at zero', () => {

@@ -4,6 +4,7 @@ import window from 'ember-window-mock';
 
 // Types
 import TradeLocation from 'better-trading/services/trade-location';
+import SearchPanel from 'better-trading/services/search-panel';
 import {poe2LeagueName} from 'better-trading/services/poe-ninja';
 import {ItemResultsEnhancerService} from 'better-trading/types/item-results';
 import IntlService from 'ember-intl/services/intl';
@@ -11,6 +12,7 @@ import FlashMessages from 'ember-cli-flash/services/flash-messages';
 
 // Utilities
 import {buildGameIcon} from 'better-trading/utilities/game-icon';
+import {escapeRegex} from 'better-trading/utilities/escape-regex';
 
 // Constants
 // Filterable mods: the rolled prefix/suffix (explicit) mods, the pseudo "total"
@@ -93,6 +95,20 @@ interface TradeQuery {
 export const normalizeStatId = (field: string): string =>
   field.replace(/^stat\./, '').replace(/^(?:fractured|desecrated|crafted)\./, 'explicit.');
 
+// Same collapse as normalizeStatId, but on a bare namespace word (from the search
+// form's `.mutate-type` badge): a fractured/desecrated/crafted filter targets the
+// same broad `explicit` stat, so compare it against explicit-namespaced controls.
+export const normalizeNamespace = (namespace: string): string =>
+  /^(?:fractured|desecrated|crafted)$/.test(namespace) ? 'explicit' : namespace;
+
+interface FormFilter {
+  // null when the filter has no namespace badge (older PoE1 form rows); then we
+  // fall back to text-only matching.
+  namespace: string | null;
+  needle: RegExp;
+  value: StatFilterValue;
+}
+
 // Flatten a query's and-group into a {statId: value} map. Used to persist the FULL
 // applied search (pre-existing filters + the ones just enabled) for post-reload
 // pre-ticking — storing only the toggled controls misses filters the search already
@@ -111,6 +127,9 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
   @service('trade-location')
   tradeLocation: TradeLocation;
 
+  @service('search-panel')
+  searchPanel: SearchPanel;
+
   @service('intl')
   intl: IntlService;
 
@@ -122,6 +141,12 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
   // Active filters in the current search, keyed by stat id — used to pre-fill the
   // inputs and pre-check the enable box for mods already being filtered.
   activeFilters: Record<string, StatFilterValue> = {};
+
+  // The current search's active stat filters, read network-free from the trade page's
+  // own search form (namespace + stat template + min/max). Used to pre-tick matching
+  // mods on render — so a plain top-bar Search (no Apply, no interaction) still shows
+  // which mods it filters on, without an extra trade2 request.
+  private formFilters: FormFilter[] = [];
 
   private cachedSlug: string | null = null;
   // Whether we've already fetched the active filters for the current search.
@@ -142,6 +167,11 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
 
     this.cachedSlug = slug;
     this.pageControls = [];
+
+    // Read the active stat filters straight from the search form (network-free) so we
+    // can pre-tick matching mods on render — covers a plain top-bar Search, which has
+    // neither a fresh Apply nor any interaction to trigger the lazy API fetch below.
+    this.formFilters = this.buildFormFilters();
 
     // If we just applied (a fresh "pending" entry exists), restore those filters so
     // the controls pre-tick on render — no network call. Otherwise defer to the lazy
@@ -184,6 +214,51 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     this.activeFilters = await this.fetchActiveFilters(encodedLeague, slug);
 
     this.pageControls.forEach((control) => this.backfillControl(control));
+  }
+
+  // Build the matchers for the search form's active stat filters: turn each stat
+  // template into a needle (the same `#` → number expansion highlight-stat-filters
+  // uses) and parse its min/max bounds.
+  private buildFormFilters(): FormFilter[] {
+    return this.searchPanel.getActiveStatFilters().map((filter) => {
+      const value: StatFilterValue = {};
+      const min = parseFloat(filter.min);
+      const max = parseFloat(filter.max);
+      if (!Number.isNaN(min)) value.min = min;
+      if (!Number.isNaN(max)) value.max = max;
+
+      return {
+        namespace: filter.namespace,
+        needle: new RegExp(escapeRegex(filter.text).replace(/#/g, '[\\+\\-]?\\d+'), 'i'),
+        value,
+      };
+    });
+  }
+
+  // Pre-tick + pre-fill a control from the search form's active filters (network-free):
+  // match by namespace + stat template text — the same signal that highlights the mod.
+  // So a plain top-bar Search reflects which mods it filters on, with no API call and
+  // no interaction needed. Skips controls already handled by the id-based backfill, and
+  // never clobbers a value the user has typed.
+  private backfillFromForm(control: InjectedControl, statText: string) {
+    if (control.enabledInput.checked) return;
+
+    const controlNamespace = control.statId.split('.')[0];
+    const match = this.formFilters.find(
+      (filter) =>
+        (filter.namespace === null || normalizeNamespace(filter.namespace) === controlNamespace) &&
+        filter.needle.test(statText)
+    );
+    if (!match) return;
+
+    if (control.minInput && match.value.min !== undefined && control.minInput.dataset.btTouched !== 'true') {
+      control.minInput.value = String(match.value.min);
+    }
+    if (control.maxInput && match.value.max !== undefined && control.maxInput.dataset.btTouched !== 'true') {
+      control.maxInput.value = String(match.value.max);
+    }
+    control.enabledInput.checked = true;
+    control.wrapper.classList.add('bt-is-enabled');
   }
 
   // Pre-tick + pre-fill a single control from this.activeFilters (the current
@@ -283,6 +358,9 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       // If the active filters are already known (restored from our own Apply), tick
       // this control immediately — no need to wait for the user to interact.
       if (this.activeFiltersFetched) this.backfillControl(injected);
+      // And tick anything the search form already filters on (network-free) — this is
+      // what makes a plain top-bar Search pre-check its mods without an Apply.
+      this.backfillFromForm(injected, statText);
       lastControlledMod = modElement;
       if (!firstWrapper && scalable) firstWrapper = control.wrapper; // size the button to a full control
     });
