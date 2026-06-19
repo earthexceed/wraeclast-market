@@ -167,10 +167,11 @@
   padding: 2px 0;
 }
 
-// Top-right toggle that collapses/shows the filter column (so it stops covering long mods).
+// Toggle that collapses/shows the filter column (so it stops covering long mods). Anchored
+// to the first controlled mod and pinned just above its control via a negative top.
 .bt-filter-toggle {
   position: absolute;
-  top: 6px;
+  top: -26px;
   right: 6px;
   z-index: 3;
   display: inline-flex;

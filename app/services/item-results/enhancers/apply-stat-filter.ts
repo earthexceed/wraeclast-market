@@ -380,9 +380,13 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     button.style.top = `${offsetTop + 4}px`;
     modContainer.appendChild(button);
 
-    // A small toggle at the top-right that collapses/shows the whole filter column, so the
-    // right-aligned controls can be tucked away when they cover long mod text.
-    modContainer.appendChild(this.renderFilterToggle(modContainer));
+    // A small toggle just above the first control that collapses/shows the whole filter
+    // column, so the right-aligned controls can be tucked away when they cover long mod
+    // text. Anchored to the first controlled mod (the first control's parent) so it sits
+    // right by the controls and shifts with the mods — e.g. when quality-simulator inserts
+    // its box above them.
+    const firstControlledMod = controls[0].wrapper.parentElement;
+    if (firstControlledMod) firstControlledMod.appendChild(this.renderFilterToggle(modContainer));
   }
 
   // Eye-icon button pinned to the top-right of the result; toggles `bt-filters-collapsed`
