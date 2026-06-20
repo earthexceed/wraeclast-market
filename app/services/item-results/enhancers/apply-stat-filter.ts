@@ -153,10 +153,8 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
   // recent Apply via sessionStorage). All other pre-checking comes from the network-free
   // form matcher (buildFormFilters / backfillFromForm).
   private activeFiltersFetched = false;
-  // The current search's query GET, fetched at most once per search and reused by Apply.
-  // Prefetched when the user hovers/focuses the Apply button so that by click time only the
-  // POST remains — halving the perceived Apply latency without adding any extra request.
-  private queryPromise: Promise<TradeQuery | null> | null = null;
+  // Monotonic id to pair a query request with its page-bridge reply.
+  private bridgeSeq = 0;
 
   // NOTE: the render path is intentionally network-free. The trade2 page already fetches
   // the current search on load and GGG's rate limits are strict, so we never issue our own
@@ -168,7 +166,6 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     if (slug === this.cachedSlug) return; // same search — keep state
 
     this.cachedSlug = slug;
-    this.queryPromise = null; // new search → drop any prefetched query for the old one
 
     // Read the active stat filters straight from the search form (network-free) so we
     // can pre-tick matching mods on render — covers a plain top-bar Search.
@@ -454,10 +451,6 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     button.classList.add('btn', 'btn-default', 'bt-apply-stat-filter-button');
     button.appendChild(buildGameIcon(MAGNIFIER_ICON_PATH));
     button.appendChild(window.document.createTextNode(this.intl.t('item-results.apply-stat-filter.apply')));
-    // Prefetch the current-search query the moment the user shows intent (hover/focus), so
-    // by the time they click, Apply only has to POST — the GET is already in flight/done.
-    button.addEventListener('mouseenter', () => this.prefetchQuery());
-    button.addEventListener('focus', () => this.prefetchQuery());
     button.addEventListener('click', () => {
       if (button.classList.contains('bt-is-loading')) return; // block double-apply / spam
       button.classList.add('bt-is-loading');
@@ -534,20 +527,45 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     }
   }
 
-  // Start the current-search query GET once (idempotent). Called on Apply-button hover/focus
-  // so the round-trip overlaps the user's intent; a failed fetch resets the cache so a later
-  // Apply can retry.
-  private prefetchQuery(): void {
-    if (this.queryPromise) return;
-    this.queryPromise = this.fetchQuery(this.tradeLocation.slug);
-    this.queryPromise.catch(() => {
-      this.queryPromise = null;
+  // Ask the page-bridge (main world) for the trade app's current query — no network, so it
+  // doesn't count against GGG's rate limit. Resolves null if the bridge isn't present or the
+  // store can't be read, so the caller falls back to the API GET.
+  private readStoreQuery(): Promise<TradeQuery | null> {
+    return new Promise((resolve) => {
+      const requestId = `bt-query-${++this.bridgeSeq}`;
+      const onMessage = (event: MessageEvent) => {
+        const data = event.data as {__btBridge?: string; requestId?: string; query?: unknown} | null;
+        if (event.source !== window || !data || data.__btBridge !== 'query' || data.requestId !== requestId) return;
+        window.clearTimeout(timer);
+        window.removeEventListener('message', onMessage);
+        resolve(this.toApiQuery(data.query));
+      };
+      const timer = window.setTimeout(() => {
+        window.removeEventListener('message', onMessage);
+        resolve(null); // no reply (bridge missing / store not ready) → fall back to the GET
+      }, 250);
+      window.addEventListener('message', onMessage);
+      window.postMessage({__btBridge: 'get-query', requestId}, '*');
     });
   }
 
-  // GET the current search's query (API format, ready to re-POST). Returns the query to
-  // merge into, a fresh empty query when there is no saved search / the fetch fails, or null
-  // when the trade site rate-limits it (429) so the caller can abort + retry.
+  // Convert the trade app's stored query (Vue store `persistent`) into the API POST shape.
+  // The store keeps stats/filters already in API form; only `status` differs (a bare option
+  // string vs `{option}`). Returns null when the snapshot doesn't look like a usable query.
+  private toApiQuery(persistent: unknown): TradeQuery | null {
+    const p = persistent as {status?: unknown; stats?: unknown; filters?: object} | null;
+    if (!p || !Array.isArray(p.stats)) return null;
+    const query: TradeQuery = {
+      status: {option: typeof p.status === 'string' ? p.status : 'online'},
+      stats: p.stats as StatGroup[],
+    };
+    if (p.filters) query.filters = p.filters;
+    return query;
+  }
+
+  // GET the current search's query from the API — the fallback for when the page-bridge can't
+  // provide it. Returns the query to merge into, a fresh empty query when there is no saved
+  // search / the fetch fails, or null when the trade site rate-limits it (429).
   private async fetchQuery(slug: string | null): Promise<TradeQuery | null> {
     const fresh = (): TradeQuery => ({status: {option: 'online'}, stats: [{type: 'and', filters: []}]});
     if (!slug) return fresh();
@@ -565,25 +583,13 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     return fresh();
   }
 
-  // Resolve the current search query for Apply, reusing the prefetched GET when present (so
-  // Apply usually only has to POST). Preserves the current search (category/rarity/existing
-  // filters) by merging into it. Clones the result so mergeControls never mutates the cached
-  // query. Returns null only on a rate-limit, clearing the cache so a retry re-fetches.
+  // Resolve the current search query to merge Apply's filters into. Prefer the in-page query
+  // (via the bridge — no network); fall back to the API GET only when that fails. Clones the
+  // result so mergeControls never mutates the source. Null only on a rate-limited fallback.
   private async loadQuery(): Promise<TradeQuery | null> {
-    if (!this.queryPromise) this.queryPromise = this.fetchQuery(this.tradeLocation.slug);
-
-    let result: TradeQuery | null;
-    try {
-      result = await this.queryPromise;
-    } catch (_error) {
-      result = null;
-    }
-
-    if (result === null) {
-      this.queryPromise = null; // rate-limited / failed — let the next Apply retry
-      return null;
-    }
-    return JSON.parse(JSON.stringify(result)) as TradeQuery;
+    const query = (await this.readStoreQuery()) || (await this.fetchQuery(this.tradeLocation.slug));
+    if (query === null) return null;
+    return JSON.parse(JSON.stringify(query)) as TradeQuery;
   }
 
   private mergeControls(query: TradeQuery, controls: InjectedControl[]) {

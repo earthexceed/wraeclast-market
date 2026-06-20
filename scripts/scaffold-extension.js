@@ -28,6 +28,13 @@ const manifest = Object.assign(
         js: [assetsPathFor('vendor.js'), assetsPathFor('better-trading.js')],
         css: [assetsPathFor('vendor.css'), assetsPathFor('better-trading.css')],
       },
+      {
+        // Main-world bridge: reads the trade app's Vue store and relays the current search
+        // query to the isolated content script (which can't access page JS). See page-bridge.js.
+        matches: ['*://www.pathofexile.com/trade*', '*://pathofexile.com/trade*'],
+        js: ['page-bridge.js'],
+        world: 'MAIN',
+      },
     ],
     background: {
       service_worker: 'background.js',
