@@ -7,7 +7,7 @@
     <FaIcon @icon="angle-right" />
   </button>
 
-  <LinkTo local-class="brand" @route="root">
+  <LinkTo local-class="brand" class="bt-pin-fly-target" @route="root">
     <img
       local-class="logo"
       src={{image-resource-url "logo.png"}}
@@ -27,6 +27,7 @@
   {{on "click" (fn this.expand)}}
   type="button"
   local-class="expand-button {{if this.expandButtonIsVisible "is-visible"}}"
+  class="bt-pin-fly-target"
 >
   <FaIcon @icon="angle-left" local-class="expand-button-icon"/>
 

@@ -63,6 +63,7 @@
   }
   :global(.price) {
     display: flex;
+    flex-wrap: wrap; // let the currency-conversion group drop to its own line
     justify-content: center;
     padding: 5px 10px 10px;
     background-color: #000;
@@ -76,12 +77,27 @@
       display: none;
     }
 
+    // The price/fee text stays centered on the first line; our conversion pills
+    // take the full width below it (a flex item, so plain display:block won't break).
+    :global(.bt-equivalent-pricings-group) {
+      flex-basis: 100%;
+      margin-top: 5px;
+      text-align: center;
+    }
+
     :global(.currency-text) span {
       display: none;
     }
 
     :global(.price-label) {
       display: none;
+    }
+
+    // ...but keep the "Fee:" label (its block is the one holding the gold coin), so the
+    // fee number isn't a bare, unlabeled figure. "Asking Price:" stays hidden for space.
+    :global(.s:has(.gold-icon)) :global(.price-label) {
+      display: inline;
+      margin-right: 3px;
     }
   }
 }
