@@ -125,22 +125,35 @@ export default class EquivalentPricings extends Service implements ItemResultsEn
 
     const itemValueInReference = price.value * pricedCurrency.value;
 
+    // Collect the equivalences in their own block so they read as a separate
+    // "≈ X = Y = Z" group on its own line, instead of chaining onto the trade
+    // site's native "Asking Price" / "Fee" text right before them (the Fee is a
+    // gold amount, unrelated to these currency conversions). The first pill leads
+    // with "≈" (an approximation of the asking price); the rest use "=" (the same
+    // value re-expressed across currencies).
+    const group = window.document.createElement('span');
+    group.classList.add('bt-equivalent-pricings-group');
+
     POE2_REFERENCE_SLUGS.forEach((referenceSlug) => {
       const equivalenceElement = this.buildPoe2Equivalence(
         this.poe2Ratios as Poe2CurrencyData,
         referenceSlug,
         price.currencySlug,
-        itemValueInReference
+        itemValueInReference,
+        group.childElementCount === 0 ? '≈' : '='
       );
-      if (equivalenceElement) pricingContainerElement.append(equivalenceElement);
+      if (equivalenceElement) group.append(equivalenceElement);
     });
+
+    if (group.childElementCount > 0) pricingContainerElement.append(group);
   }
 
   private buildPoe2Equivalence(
     ratios: Poe2CurrencyData,
     referenceSlug: string,
     pricedSlug: string | null,
-    itemValueInReference: number
+    itemValueInReference: number,
+    connector: string
   ): HTMLElement | null {
     if (referenceSlug === pricedSlug) return null;
 
@@ -150,7 +163,7 @@ export default class EquivalentPricings extends Service implements ItemResultsEn
     const equivalentValue = this.roundPoe2Equivalent(itemValueInReference / referenceCurrency.value);
     if (!equivalentValue) return null;
 
-    return this.renderPoe2Equivalence(equivalentValue, referenceCurrency.icon, referenceSlug);
+    return this.renderPoe2Equivalence(equivalentValue, referenceCurrency.icon, referenceSlug, connector);
   }
 
   private roundPoe2Equivalent(value: number): number {
@@ -158,10 +171,17 @@ export default class EquivalentPricings extends Service implements ItemResultsEn
     return value >= POE2_DECIMAL_THRESHOLD ? Math.round(value) : Math.round(value * 10) / 10;
   }
 
-  private renderPoe2Equivalence(equivalentValue: number, currencyIconUrl: string, currencyAlt: string): HTMLElement {
-    return this.buildEquivalenceElement('bt-equivalent-pricings-equivalent', [
-      {value: `${equivalentValue}×`, src: currencyIconUrl, alt: currencyAlt},
-    ]);
+  private renderPoe2Equivalence(
+    equivalentValue: number,
+    currencyIconUrl: string,
+    currencyAlt: string,
+    connector: string
+  ): HTMLElement {
+    return this.buildEquivalenceElement(
+      'bt-equivalent-pricings-equivalent',
+      [{value: `${equivalentValue}×`, src: currencyIconUrl, alt: currencyAlt}],
+      connector
+    );
   }
 
   private renderChaosEquivalence(chaosEquivalentValue: number): HTMLElement {
@@ -193,7 +213,8 @@ export default class EquivalentPricings extends Service implements ItemResultsEn
   // cannot break out of an attribute or inject markup.
   private buildEquivalenceElement(
     modifierClass: string,
-    parts: Array<{value: string; src: string; alt: string}>
+    parts: Array<{value: string; src: string; alt: string}>,
+    connector = '='
   ): HTMLElement {
     const element = window.document.createElement('span');
     element.classList.add('bt-equivalent-pricings', modifierClass);
@@ -202,7 +223,7 @@ export default class EquivalentPricings extends Service implements ItemResultsEn
 
     const equals = window.document.createElement('span');
     equals.classList.add('bt-equivalent-pricings-equals');
-    equals.textContent = '=';
+    equals.textContent = connector;
     inner.appendChild(equals);
 
     parts.forEach(({value, src, alt}) => {

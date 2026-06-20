@@ -15,6 +15,14 @@
   margin: 0 5px;
 }
 
+// Keep the currency-conversion pills on their own line, visually detached from the
+// trade site's native "Asking Price" / "Fee" text that precedes them (the Fee is a
+// gold amount, not part of this chain). The pills themselves stay inline within it.
+.bt-equivalent-pricings-group {
+  display: block;
+  margin-top: 3px;
+}
+
 .results:not(.compact) .bt-equivalent-pricings {
   background-color: rgba(#fff, 0.1);
 
