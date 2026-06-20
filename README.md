@@ -20,12 +20,14 @@ In the meantime, you can continue to use version [1.3.2 on Firefox](https://addo
 ## Features
 
 - Works on both **Path of Exile** and **Path of Exile 2** trade sites
+- **Apply stat filters from results** — inline min/max inputs + one-click Apply (reads the live search straight from the page, so it's light on the trade site's rate limits)
+- **Copy for PoB** — one-click export an item to import into Path of Building
+- **Quality simulator** (PoE 2) — preview how catalyst quality scales ring & amulet mods, live
+- Equivalent pricing across currencies (powered by [poe.ninja](https://poe.ninja/))
 - Bookmarks manager — organize searches into folders with class / currency icons
-- Equivalent pricing calculator (powered by [poe.ninja](https://poe.ninja/))
+- Pin items (with quick-jump) & search history
 - Searched mods highlighting
-- **Apply stat filters from results** — inline min/max inputs + one-click Apply
 - Regroup similar results
-- Pin items & search history
 - Warning for armours that cannot be 6-socketed (PoE 1 only)
 - ... more to come !
 
