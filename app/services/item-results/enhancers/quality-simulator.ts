@@ -171,15 +171,17 @@ export default class QualitySimulator extends Service implements ItemResultsEnha
     const itemQuality = parseItemQuality(itemElement);
     const box = this.buildBox(itemElement, kind, itemQuality);
     typeLine.insertAdjacentElement('afterend', box);
-    this.repositionApplyButton(itemElement);
+    this.repositionButtons(itemElement);
   }
 
-  // apply-stat-filter (runs earlier, alphabetically) positions its absolute "Apply"
-  // button from a one-time snapshot of the mod layout. Inserting our box above the mods
-  // shifts them down, leaving that snapshot too high (the button ends up hidden among the
-  // rows). Recompute the button's top from the post-insert layout, using the same anchor
-  // apply-stat-filter uses: the last mod carrying a control.
-  private repositionApplyButton(root: HTMLElement): void {
+  // apply-stat-filter and copy-item (both run earlier, alphabetically) position their
+  // absolute "Apply" (bottom-right) and "Copy for PoB" (bottom-left) buttons from a
+  // one-time snapshot of the mod layout. Inserting our box above the mods shifts them
+  // down, leaving that snapshot too high (the buttons end up floating among the rows).
+  // Recompute both buttons' top from the post-insert layout, using the same anchor
+  // apply-stat-filter uses: the last mod carrying a control. copy-item mirrors Apply's
+  // top, so we apply the same value to both.
+  private repositionButtons(root: HTMLElement): void {
     const button = root.querySelector<HTMLElement>('.bt-apply-stat-filter-button');
     const container = button?.parentElement as HTMLElement | null;
     if (!button || !container) return;
@@ -187,7 +189,10 @@ export default class QualitySimulator extends Service implements ItemResultsEnha
     const anchorMod = controls[controls.length - 1]?.closest('.item-mod, .explicitMod, .pseudoMod') as HTMLElement | null;
     if (!anchorMod) return;
     const offsetTop = anchorMod.getBoundingClientRect().bottom - container.getBoundingClientRect().top;
-    button.style.top = `${offsetTop + 4}px`;
+    const top = `${offsetTop + 4}px`;
+    button.style.top = top;
+    const copyButton = container.querySelector<HTMLElement>('.bt-copy-item-button');
+    if (copyButton) copyButton.style.top = top;
   }
 
   private buildBox(root: HTMLElement, kind: JewelleryKind, itemQuality: ItemQuality | null): HTMLElement {
