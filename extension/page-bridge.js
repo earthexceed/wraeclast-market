@@ -21,7 +21,7 @@
     }
   }
 
-  function applyStats(filters) {
+  function applyStats(filters, removeIds) {
     var persistent = getStore().state.persistent;
 
     // Merge into a clone of the existing stats (keeping the user's own filters, plus type /
@@ -38,6 +38,14 @@
     if (!andGroup) {
       andGroup = {type: 'and', filters: []};
       stats.unshift(andGroup);
+    }
+
+    // Drop the stats whose control was unticked, so unchecking a mod removes its filter.
+    var remove = removeIds || [];
+    if (remove.length) {
+      andGroup.filters = andGroup.filters.filter(function (f) {
+        return remove.indexOf(f.id) === -1;
+      });
     }
 
     (filters || []).forEach(function (filter) {
@@ -73,7 +81,7 @@
     } else if (data.__btBridge === 'apply-stats') {
       var ok = false;
       try {
-        applyStats(data.filters);
+        applyStats(data.filters, data.removeIds);
         ok = true;
       } catch (error) {
         ok = false;

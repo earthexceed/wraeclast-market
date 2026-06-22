@@ -484,22 +484,27 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     // the results — the "item disappears" bug). It also keeps type/term/name/existing-filters
     // automatically, since it mutates the store rather than rebuilding the query.
     const filters = enabled.map((control) => ({id: control.statId, value: this.controlValue(control)}));
-    if (await this.applyInPlace(filters)) {
-      // No reload happens, so seed the active filters in-memory; the re-rendered results then
-      // pre-tick exactly the mods this search now filters on.
+    // Stats whose control the user UNticked: drop them from the search so unchecking a mod and
+    // applying actually removes that filter (otherwise it lingers in the search and re-ticks).
+    const removeIds = controls.filter((control) => !control.enabledInput.checked).map((control) => control.statId);
+    if (await this.applyInPlace(filters, removeIds)) {
+      // No reload happens, so sync the active filters in-memory; the re-rendered results then
+      // pre-tick exactly the mods this search now filters on (and not the removed ones).
       enabled.forEach((control) => (this.activeFilters[control.statId] = this.controlValue(control)));
+      removeIds.forEach((id) => delete this.activeFilters[id]);
       this.activeFiltersFetched = true;
       return true;
     }
 
     // Fallback (page-bridge unavailable / failed): build the query and navigate, as before.
-    return this.applyViaNavigation(enabled);
+    return this.applyViaNavigation(enabled, removeIds);
   }
 
-  // Ask the page-bridge (main world) to merge our stat filters into the trade app's store and
-  // click its native Search — searching in place with no reload. Resolves false when the bridge
-  // isn't present or fails, so the caller falls back to the API path.
-  private applyInPlace(filters: StatFilterEntry[]): Promise<boolean> {
+  // Ask the page-bridge (main world) to sync our stat filters into the trade app's store (set
+  // the enabled ones, drop the removed ones) and click its native Search — searching in place
+  // with no reload. Resolves false when the bridge isn't present or fails, so the caller falls
+  // back to the API path.
+  private applyInPlace(filters: StatFilterEntry[], removeIds: string[]): Promise<boolean> {
     return new Promise((resolve) => {
       const requestId = `bt-apply-${++this.bridgeSeq}`;
       const onMessage = (event: MessageEvent) => {
@@ -514,11 +519,11 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
         resolve(false);
       }, 600);
       window.addEventListener('message', onMessage);
-      window.postMessage({__btBridge: 'apply-stats', requestId, filters}, '*');
+      window.postMessage({__btBridge: 'apply-stats', requestId, filters, removeIds}, '*');
     });
   }
 
-  private async applyViaNavigation(enabled: InjectedControl[]): Promise<boolean> {
+  private async applyViaNavigation(enabled: InjectedControl[], removeIds: string[]): Promise<boolean> {
     const encodedLeague = encodeURIComponent(poe2LeagueName(this.tradeLocation.league || ''));
 
     const query = await this.loadQuery();
@@ -528,6 +533,11 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       return false;
     }
     this.mergeControls(query, enabled);
+    // Drop the unticked stats from the and-group too, so they don't carry into the new search.
+    if (removeIds.length) {
+      const andGroup = query.stats.find((group) => group.type === 'and');
+      if (andGroup) andGroup.filters = andGroup.filters.filter((filter) => !removeIds.includes(filter.id));
+    }
 
     let searchId: string | null = null;
     let rateLimited = false;
