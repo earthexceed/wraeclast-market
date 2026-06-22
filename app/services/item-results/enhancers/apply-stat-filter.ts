@@ -83,6 +83,9 @@ interface TradeQuery {
   status?: object;
   stats: StatGroup[];
   filters?: object;
+  type?: unknown;
+  term?: unknown;
+  name?: unknown;
 }
 
 // Variant-source mods (fractured / desecrated / crafted) carry the SAME stat number
@@ -339,13 +342,14 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     // right by the controls and shifts with the mods — e.g. when quality-simulator inserts
     // its box above them.
     const firstControlledMod = controls[0].wrapper.parentElement;
-    if (firstControlledMod) firstControlledMod.appendChild(this.renderFilterToggle(modContainer));
+    if (firstControlledMod) firstControlledMod.appendChild(this.renderFilterToggle());
   }
 
-  // Eye-icon button pinned to the top-right of the result; toggles `bt-filters-collapsed`
-  // on the mod container, which (via CSS) hides every injected control + the Apply button
-  // so the underlying mod text is fully readable. The toggle itself stays visible.
-  private renderFilterToggle(modContainer: HTMLElement): HTMLButtonElement {
+  // Eye-icon button pinned to the top-right of each result. Clicking any one toggles
+  // `bt-filters-collapsed-all` on <body>, which (via CSS) hides every injected control +
+  // the Apply button across ALL results at once so the underlying mod text is readable.
+  // The eyes themselves stay visible and all reflect the shared collapsed state.
+  private renderFilterToggle(): HTMLButtonElement {
     const button = window.document.createElement('button');
     button.type = 'button';
     button.classList.add('bt-filter-toggle');
@@ -363,8 +367,7 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     button.appendChild(icon);
 
     button.addEventListener('click', () => {
-      const collapsed = modContainer.classList.toggle('bt-filters-collapsed');
-      button.classList.toggle('bt-is-collapsed', collapsed);
+      window.document.body.classList.toggle('bt-filters-collapsed-all');
     });
 
     return button;
@@ -455,17 +458,18 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       if (button.classList.contains('bt-is-loading')) return; // block double-apply / spam
       button.classList.add('bt-is-loading');
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      this.handleApply(controls).then((applied) => {
-        // On success the page navigates away, so leave the spinner up; restore only on a bail.
-        if (!applied) button.classList.remove('bt-is-loading');
+      this.handleApply(controls).then(() => {
+        // In-place search re-renders the results (replacing this button); the navigation
+        // fallback reloads. Either way, clear the spinner once Apply resolves.
+        button.classList.remove('bt-is-loading');
       });
     });
 
     return button;
   }
 
-  // Returns true once it has initiated navigation to the new search (success), false on any
-  // bail (nothing enabled, rate-limited, error) so the caller can drop the loading state.
+  // Returns true once the new search has been initiated (success), false on any bail
+  // (nothing enabled, rate-limited, error) so the caller can drop the loading state.
   private async handleApply(controls: InjectedControl[]): Promise<boolean> {
     const enabled = controls.filter((control) => control.enabledInput.checked);
     if (enabled.length === 0) {
@@ -473,9 +477,50 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
       return false;
     }
 
+    // Preferred path: merge the filters into the trade app's live search and trigger its own
+    // Search button — an in-place search, ONE request, no full-page reload. The old path POSTed
+    // our own search AND navigated to it, which made the trade site re-run the search on load:
+    // two search requests per Apply, doubling rate-limit pressure (a 429 on the reload blanked
+    // the results — the "item disappears" bug). It also keeps type/term/name/existing-filters
+    // automatically, since it mutates the store rather than rebuilding the query.
+    const filters = enabled.map((control) => ({id: control.statId, value: this.controlValue(control)}));
+    if (await this.applyInPlace(filters)) {
+      // No reload happens, so seed the active filters in-memory; the re-rendered results then
+      // pre-tick exactly the mods this search now filters on.
+      enabled.forEach((control) => (this.activeFilters[control.statId] = this.controlValue(control)));
+      this.activeFiltersFetched = true;
+      return true;
+    }
+
+    // Fallback (page-bridge unavailable / failed): build the query and navigate, as before.
+    return this.applyViaNavigation(enabled);
+  }
+
+  // Ask the page-bridge (main world) to merge our stat filters into the trade app's store and
+  // click its native Search — searching in place with no reload. Resolves false when the bridge
+  // isn't present or fails, so the caller falls back to the API path.
+  private applyInPlace(filters: StatFilterEntry[]): Promise<boolean> {
+    return new Promise((resolve) => {
+      const requestId = `bt-apply-${++this.bridgeSeq}`;
+      const onMessage = (event: MessageEvent) => {
+        const data = event.data as {__btBridge?: string; requestId?: string; ok?: boolean} | null;
+        if (event.source !== window || !data || data.__btBridge !== 'apply-done' || data.requestId !== requestId) return;
+        window.clearTimeout(timer);
+        window.removeEventListener('message', onMessage);
+        resolve(Boolean(data.ok));
+      };
+      const timer = window.setTimeout(() => {
+        window.removeEventListener('message', onMessage);
+        resolve(false);
+      }, 600);
+      window.addEventListener('message', onMessage);
+      window.postMessage({__btBridge: 'apply-stats', requestId, filters}, '*');
+    });
+  }
+
+  private async applyViaNavigation(enabled: InjectedControl[]): Promise<boolean> {
     const encodedLeague = encodeURIComponent(poe2LeagueName(this.tradeLocation.league || ''));
 
-    // Reuses the prefetched GET (hover/focus) when available, so this usually doesn't block.
     const query = await this.loadQuery();
     if (query === null) {
       // Rate-limited fetching the current query — abort before POSTing a stale/merge-less one.
@@ -553,13 +598,20 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
   // The store keeps stats/filters already in API form; only `status` differs (a bare option
   // string vs `{option}`). Returns null when the snapshot doesn't look like a usable query.
   private toApiQuery(persistent: unknown): TradeQuery | null {
-    const p = persistent as {status?: unknown; stats?: unknown; filters?: object} | null;
+    const p = persistent as
+      | {status?: unknown; stats?: unknown; filters?: object; type?: unknown; term?: unknown; name?: unknown}
+      | null;
     if (!p || !Array.isArray(p.stats)) return null;
     const query: TradeQuery = {
       status: {option: typeof p.status === 'string' ? p.status : 'online'},
       stats: p.stats as StatGroup[],
     };
     if (p.filters) query.filters = p.filters;
+    // Preserve the search's scope so the navigation fallback doesn't silently widen Apply to
+    // every item type/name (the in-place path keeps these automatically by mutating the store).
+    if (p.type !== undefined && p.type !== null && p.type !== '') query.type = p.type;
+    if (p.term !== undefined && p.term !== null && p.term !== '') query.term = p.term;
+    if (p.name !== undefined && p.name !== null && p.name !== '') query.name = p.name;
     return query;
   }
 
