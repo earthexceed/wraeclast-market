@@ -289,10 +289,10 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
         ROLL_RANGE_PATTERN.test(leftLabel) ||
         (TIER_PREFIX_PATTERN.test(leftLabel.trim()) && ROLLED_VALUE_PATTERN.test(statText));
 
-      // Default min to the item's roll. Mods already part of the current search are
-      // pre-enabled/pre-filled network-free (backfillFromForm + the post-Apply snapshot),
-      // so there's no trade2 request just to render the page.
-      const minValue = scalable ? this.rolledValue(statText) : '';
+      // Leave min empty by default, mirroring the trade site's own filter rows where the user
+      // opts into a bound. Mods already part of the current search still get their value
+      // back-filled (backfillFromForm + the post-Apply snapshot), network-free.
+      const minValue = '';
 
       const control = this.renderControl(scalable, minValue, '');
 
@@ -371,12 +371,6 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     });
 
     return button;
-  }
-
-  private rolledValue(statText: string): string {
-    const match = statText.match(ROLLED_VALUE_PATTERN);
-
-    return match ? match[0].replace(/^\+/, '') : '';
   }
 
   private renderControl(

@@ -77,7 +77,7 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
 
   afterEach(() => container.remove());
 
-  it('injects min/max inputs only on mods that carry a stat id, defaulting min to the rolled value', () => {
+  it('injects min/max inputs only on mods that carry a stat id, leaving min empty by default', () => {
     service.activeFilters = {};
 
     container.insertAdjacentHTML(
@@ -98,7 +98,7 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     expect(controls.length).to.equal(1);
     const min = controls[0].querySelector('input[data-bound="min"]') as HTMLInputElement;
     const max = controls[0].querySelector('input[data-bound="max"]') as HTMLInputElement;
-    expect(min.value).to.equal('14');
+    expect(min.value).to.equal(''); // empty by default — the user opts into a bound
     expect(max.value).to.equal('');
     // opt-in toggle present and off by default (Apply only takes enabled mods)
     const wrapper = controls[0] as HTMLElement;
@@ -114,7 +114,7 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     expect(itemElement.querySelectorAll('.bt-apply-stat-filter-button').length).to.equal(1);
   });
 
-  it('injects a top toggle that collapses + restores the filter column', () => {
+  it('injects a top toggle that globally collapses + restores all filter columns', () => {
     service.activeFilters = {};
 
     container.insertAdjacentHTML('afterbegin', `<div class="item-popup__content">${critMod('14%')}</div>`);
@@ -124,15 +124,13 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
 
     const toggle = itemElement.querySelector('.bt-filter-toggle') as HTMLButtonElement;
     expect(toggle).to.be.an('HTMLButtonElement');
-    expect(itemElement.classList.contains('bt-filters-collapsed')).to.equal(false);
+    expect(document.body.classList.contains('bt-filters-collapsed-all')).to.equal(false);
 
-    toggle.click(); // hide the controls
-    expect(itemElement.classList.contains('bt-filters-collapsed')).to.equal(true);
-    expect(toggle.classList.contains('bt-is-collapsed')).to.equal(true);
+    toggle.click(); // hide the controls across every result
+    expect(document.body.classList.contains('bt-filters-collapsed-all')).to.equal(true);
 
     toggle.click(); // show them again
-    expect(itemElement.classList.contains('bt-filters-collapsed')).to.equal(false);
-    expect(toggle.classList.contains('bt-is-collapsed')).to.equal(false);
+    expect(document.body.classList.contains('bt-filters-collapsed-all')).to.equal(false);
   });
 
   it('marks a controlled mod row with bt-has-stat-filter (taller row so controls do not overlap)', () => {
@@ -200,7 +198,7 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     const max = wrapper.querySelector('input[data-bound="max"]') as HTMLInputElement;
     expect(min).to.be.an('HTMLInputElement'); // min/max present → scalable
     expect(max).to.be.an('HTMLInputElement');
-    expect(min.value).to.equal('3'); // prefilled from the rolled +3
+    expect(min.value).to.equal(''); // empty by default (scalable just means it has min/max)
   });
 
   it('filters fractured / desecrated / crafted mods (permanent item-bound stats)', () => {
@@ -245,7 +243,7 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     const min = wrapper.querySelector('input[data-bound="min"]') as HTMLInputElement;
     const max = wrapper.querySelector('input[data-bound="max"]') as HTMLInputElement;
     const enabled = wrapper.querySelector('.bt-apply-stat-filter-enabled') as HTMLInputElement;
-    // active filter min=17 wins over the item's rolled 19; max=40 shown
+    // active filter min=17/max=40 back-filled onto the (empty-by-default) inputs
     expect(min.value).to.equal('17');
     expect(max.value).to.equal('40');
     // already filtered → pre-enabled (checked + not dimmed)
@@ -280,7 +278,7 @@ describe('Unit | Services | ItemResults | Enhancers | ApplyStatFilter', () => {
     const min = wrapper.querySelector('input[data-bound="min"]') as HTMLInputElement;
     expect(enabled.checked).to.equal(true);
     expect(wrapper.classList.contains('bt-is-enabled')).to.equal(true);
-    expect(min.value).to.equal('80'); // the search's min wins over the rolled 164
+    expect(min.value).to.equal('80'); // the search's min is back-filled onto the empty input
   });
 
   it('matches a variant-source mod via the broad explicit form filter (crafted/fractured → explicit)', () => {
