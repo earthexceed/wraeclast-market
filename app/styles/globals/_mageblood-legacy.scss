@@ -1,8 +1,8 @@
 // Mageblood "Legacy of X" mods don't print their effect on the trade card. mageblood-legacy
-// tags each one (.bt-mb-legacy) and the duplicate-effect mod (.bt-mb-duplicate), then reveals a
-// themed multi-line tooltip (from data-bt-mb-tip) on hover — including the duplicate-multiplier
-// maths. The tooltip is a pure ::after pseudo-element, so it never leaks into the Copy-for-PoB /
-// CoE text (which copies the popup's text selection).
+// tags each one (.bt-mb-legacy) and the duplicate-effect mod (.bt-mb-duplicate) and appends a
+// styled tooltip (.bt-mb-tip) shown on hover, including the duplicate-multiplier maths. The
+// tooltip element is excluded from Copy-for-PoB (copy-item hides it) and isn't read by
+// Copy-for-CoE (which only reads the mod value spans).
 .bt-mb-legacy,
 .bt-mb-duplicate {
   position: relative;
@@ -10,37 +10,107 @@
 
   // Dotted underline under the mod's text as a "hover me" affordance.
   [data-field^='stat.'] {
-    border-bottom: 1px dotted rgba(232, 200, 115, 0.55);
+    border-bottom: 1px dotted rgba(232, 200, 115, 0.5);
   }
+}
 
-  &:hover {
-    z-index: 20;
-  }
+.bt-mb-tip {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 8px;
+  z-index: 40;
+  min-width: 224px;
+  max-width: 360px;
+  padding: 9px 12px 10px;
+  background: linear-gradient(180deg, rgba(22, 17, 9, 0.99), rgba(9, 7, 4, 0.99));
+  border: 1px solid #6b5a2e;
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.78);
+  text-align: left;
+  opacity: 0;
+  transform: translateY(-3px);
+  pointer-events: none;
+  transition: opacity 0.13s ease, transform 0.13s ease;
+}
 
-  &::after {
-    content: attr(data-bt-mb-tip);
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 8px;
-    z-index: 30;
-    min-width: 210px;
-    max-width: 360px;
-    padding: 7px 10px;
-    white-space: pre-line; // honour the newlines in the tooltip text + wrap long lines
-    text-align: left;
-    background-color: rgba(8, 7, 5, 0.98);
-    border: 1px solid #6b6147;
-    border-radius: 4px;
-    color: #d9cfb0;
-    font-size: 12px;
-    line-height: 1.45;
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.7);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.12s ease;
-  }
+.bt-mb-legacy:hover .bt-mb-tip,
+.bt-mb-duplicate:hover .bt-mb-tip {
+  opacity: 1;
+  transform: translateY(0);
+}
 
-  &:hover::after {
-    opacity: 1;
-  }
+// Little arrow pointing up at the mod line.
+.bt-mb-tip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 18px;
+  border: 6px solid transparent;
+  border-bottom-color: #6b5a2e;
+}
+
+.bt-mb-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(107, 90, 46, 0.5);
+}
+
+.bt-mb-tip-name {
+  color: #e8c873;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+}
+
+// Count pill (e.g. ×2) for a duplicated Legacy.
+.bt-mb-tip-badge {
+  margin-left: auto;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0b0906;
+  background: #e8c873;
+  border-radius: 9px;
+}
+
+.bt-mb-tip-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bt-mb-tip-line {
+  color: #d9cfb0;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+// Effective (boosted) values — green, like the quality simulator's scaled numbers.
+.bt-mb-tip-line.bt-mb-tip-boost {
+  color: #7fc77f;
+  font-weight: 600;
+}
+
+.bt-mb-tip-note-stat {
+  color: #b7ad8c;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.bt-mb-tip-unknown {
+  color: #8d835c;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.bt-mb-tip-foot {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(107, 90, 46, 0.5);
+  color: #8d835c;
+  font-size: 11px;
+  line-height: 1.45;
 }
