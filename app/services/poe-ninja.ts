@@ -99,9 +99,13 @@ export const poe2LeagueName = (league: string): string => {
 
 // Constants
 const CURRENCIES_RESOURCE_URI = '/data/currencyoverview?type=Currency';
-const POE2_CURRENCIES_RESOURCE_URI = '/exchange/current/overview?type=Currency';
+// poe.ninja unified PoE1 + PoE2 onto the same "currency exchange" overview endpoint, served
+// per game under /poe1/api/economy and /poe2/api/economy (same `{lines, items}` payload shape).
+const EXCHANGE_OVERVIEW_RESOURCE_URI = '/exchange/current/overview?type=Currency';
+const POE2_CURRENCIES_RESOURCE_URI = EXCHANGE_OVERVIEW_RESOURCE_URI;
 const RATIOS_CACHE_DURATION = 3600000; // 1 hour
 const RATIOS_CACHE_KEY = 'poe-ninja-chaos-ratios-cache';
+const POE1_RATIOS_CACHE_KEY = 'poe-ninja-poe1-ratios-cache';
 const POE2_RATIOS_CACHE_KEY = 'poe-ninja-poe2-ratios-cache';
 
 export default class PoeNinja extends Service {
@@ -150,6 +154,32 @@ export default class PoeNinja extends Service {
     const ratios = parsePoe2Ratios(payload);
     if (Object.keys(ratios).length > 0) {
       await this.cacheExaltedRatiosFor(league, ratios);
+    }
+
+    return ratios;
+  }
+
+  // PoE1 currency-exchange ratios. Same payload shape + parser as PoE2 (poe.ninja unified the
+  // two), just fetched from the /poe1/api/economy host (the legacy /api/data/currencyoverview
+  // endpoint this fork used was retired). Returns {slug: {value, icon}} keyed like the PoE2 data.
+  async fetchPoe1RatiosFor(league: string): Promise<Poe2CurrencyData> {
+    // Treat an empty cached object as a miss (poe.ninja returns an empty payload for an unknown
+    // league; caching that for an hour would suppress the feature even after the cause is fixed).
+    const cachedRatios = await this.storage.getValue<Poe2CurrencyData>(POE1_RATIOS_CACHE_KEY, league);
+    if (cachedRatios && Object.keys(cachedRatios).length > 0) return cachedRatios;
+
+    const uri = `${EXCHANGE_OVERVIEW_RESOURCE_URI}&league=${encodeURIComponent(poe2LeagueName(league))}`;
+    let payload: PoeNinjaPoe2Payload;
+    try {
+      payload = (await this.extensionBackground.fetchPoeNinjaPoe1Resource(uri)) as PoeNinjaPoe2Payload;
+    } catch (_error) {
+      // poe.ninja unavailable: degrade gracefully (no equivalence shown).
+      return {};
+    }
+
+    const ratios = parsePoe2Ratios(payload);
+    if (Object.keys(ratios).length > 0) {
+      await this.storage.setEphemeralValue(POE1_RATIOS_CACHE_KEY, ratios, dateDelta(RATIOS_CACHE_DURATION), league);
     }
 
     return ratios;

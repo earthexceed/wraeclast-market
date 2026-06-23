@@ -15,6 +15,15 @@ extensionApi.runtime.onMessage.addListener(function(request, sender, sendRespons
     return true;
   }
 
+  if (request.query === 'poe-ninja-poe1') {
+    fetch('https://poe.ninja/poe1/api/economy' + request.resource)
+      .then(function(response) { return response.json() })
+      .then(function(payload) { sendResponse(payload) })
+      .catch(function(_error) { sendResponse(null) });
+
+    return true;
+  }
+
   if (request.query === 'poe-ninja-poe2') {
     fetch('https://poe.ninja/poe2/api/economy' + request.resource)
       .then(function(response) { return response.json() })

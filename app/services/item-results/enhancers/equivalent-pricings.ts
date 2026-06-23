@@ -17,6 +17,10 @@ const NORMALIZED_CURRENCY_EQUIVALENCE_THRESHOLD = 0.5;
 
 // PoE2 reference currencies the price is annotated against (poe.ninja powered).
 const POE2_REFERENCE_SLUGS = ['exalted-orb', 'divine-orb', 'chaos-orb', 'orb-of-annulment'];
+// PoE1 reference currencies — the two everyone prices in (Divine / Chaos). The pill skips
+// whichever one the item is already priced in, so a chaos item shows its divine value and
+// vice-versa.
+const POE1_REFERENCE_SLUGS = ['divine-orb', 'chaos-orb'];
 // Below this magnitude we keep one decimal of precision, otherwise round to int.
 const POE2_DECIMAL_THRESHOLD = 10;
 
@@ -29,9 +33,16 @@ export default class EquivalentPricings extends Service implements ItemResultsEn
 
   slug = 'equivalent-pricings';
 
+  // Legacy chaos-ratio path (kept for the unit tests / as a fallback shape). Live searches no
+  // longer populate it: both games now use the unified currency-exchange data in `poe2Ratios`.
   chaosRatios: PoeNinjaCurrenciesRatios | null;
 
+  // Currency-exchange ratios ({slug: {value, icon}}), used for BOTH games now that poe.ninja
+  // serves PoE1 and PoE2 from the same overview endpoint. (Name kept for the existing tests.)
   poe2Ratios: Poe2CurrencyData | null;
+
+  // Reference currencies to annotate each price against — set per game in prepare().
+  referenceSlugs: string[] = POE2_REFERENCE_SLUGS;
 
   async prepare() {
     const currentLeague = this.tradeLocation.league;
@@ -42,9 +53,11 @@ export default class EquivalentPricings extends Service implements ItemResultsEn
     if (!currentLeague) return;
 
     if (version === '1') {
-      this.chaosRatios = await this.poeNinja.fetchChaosRatiosFor(currentLeague);
+      this.poe2Ratios = await this.poeNinja.fetchPoe1RatiosFor(currentLeague);
+      this.referenceSlugs = POE1_REFERENCE_SLUGS;
     } else if (version === '2') {
       this.poe2Ratios = await this.poeNinja.fetchExaltedRatiosFor(currentLeague);
+      this.referenceSlugs = POE2_REFERENCE_SLUGS;
     }
   }
 
@@ -134,7 +147,7 @@ export default class EquivalentPricings extends Service implements ItemResultsEn
     const group = window.document.createElement('span');
     group.classList.add('bt-equivalent-pricings-group');
 
-    POE2_REFERENCE_SLUGS.forEach((referenceSlug) => {
+    this.referenceSlugs.forEach((referenceSlug) => {
       const equivalenceElement = this.buildPoe2Equivalence(
         this.poe2Ratios as Poe2CurrencyData,
         referenceSlug,

@@ -15,6 +15,15 @@ export default class ExtensionBackground extends Service {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
+  async fetchPoeNinjaPoe1Resource(resource: string): Promise<object> {
+    return new Promise((resolve, reject) => {
+      extensionApi().runtime.sendMessage({query: 'poe-ninja-poe1', resource}, (payload: object | null) => {
+        return payload ? resolve(payload) : reject(new Error('poe-ninja-poe1 fetch failed'));
+      });
+    });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
   async fetchPoeNinjaPoe2Resource(resource: string): Promise<object> {
     return new Promise((resolve, reject) => {
       extensionApi().runtime.sendMessage({query: 'poe-ninja-poe2', resource}, (payload: object | null) => {
