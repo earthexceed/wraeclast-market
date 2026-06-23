@@ -1,9 +1,14 @@
 // Vendor
-import Service from '@ember/service';
+import Service, {inject as service} from '@ember/service';
 import window from 'ember-window-mock';
 
 // Types
 import {ItemResultsEnhancerService} from 'better-trading/types/item-results';
+import {TradeSiteVersion} from 'better-trading/types/trade-location';
+import TradeLocation from 'better-trading/services/trade-location';
+
+// Utilities
+import {decodeIconCategory} from 'better-trading/utilities/icon-category';
 
 export interface QualityCategory {
   key: string;
@@ -47,9 +52,50 @@ const CATEGORY_PATTERNS: Record<string, RegExp[]> = {
   minion: [/minion/i],
 };
 
-// All categories whose patterns match the mod text (order follows QUALITY_CATEGORIES).
-export const categoriesForMod = (text: string): string[] =>
-  QUALITY_CATEGORIES.map((c) => c.key).filter((key) => CATEGORY_PATTERNS[key].some((re) => re.test(text)));
+// The PoE1 jewellery quality categories (from Catalysts). Each maps to one catalyst's mod
+// group; the grouped names (Life and Mana / Physical and Chaos) match how the in-game item
+// labels its "Quality (… Modifiers)" line, so an item's own quality auto-fills the dropdown.
+export const POE1_QUALITY_CATEGORIES: QualityCategory[] = [
+  {key: 'attack', label: 'Attack'}, // Abrasive Catalyst
+  {key: 'caster', label: 'Caster'}, // Imbued Catalyst
+  {key: 'life-and-mana', label: 'Life and Mana'}, // Fertile Catalyst
+  {key: 'defence', label: 'Defence'}, // Tempering Catalyst
+  {key: 'resistance', label: 'Resistance'}, // Prismatic Catalyst
+  {key: 'elemental', label: 'Elemental'}, // Turbulent Catalyst
+  {key: 'attribute', label: 'Attribute'}, // Intrinsic Catalyst
+  {key: 'physical-and-chaos', label: 'Physical and Chaos'}, // Noxious Catalyst
+  {key: 'critical', label: 'Critical'}, // Unstable Catalyst
+  {key: 'speed', label: 'Speed'}, // Accelerating Catalyst
+];
+
+// PoE1 patterns. Elemental = elemental DAMAGE (Turbulent) and is kept distinct from
+// Resistance (Prismatic), which covers every "… Resistance" mod. Conservative as above.
+const POE1_CATEGORY_PATTERNS: Record<string, RegExp[]> = {
+  attack: [/to attacks/i, /accuracy rating/i, /with attacks/i, /\bmelee\b/i, /attack damage/i],
+  caster: [/spell damage/i, /to spells/i, /\bspell\b/i],
+  'life-and-mana': [/maximum life/i, /maximum mana/i, /life regeneration/i, /mana regeneration/i],
+  defence: [/energy shield/i, /evasion rating/i, /\barmour\b/i, /chance to block/i],
+  resistance: [/resistance/i],
+  elemental: [/fire damage/i, /cold damage/i, /lightning damage/i, /elemental damage/i],
+  attribute: [/\bstrength\b/i, /\bdexterity\b/i, /\bintelligence\b/i, /all attributes/i],
+  'physical-and-chaos': [/physical damage/i, /chaos damage/i],
+  critical: [/critical strike/i, /critical hit/i],
+  speed: [/movement speed/i, /attack speed/i, /cast speed/i],
+};
+
+const CATEGORIES_BY_VERSION: Record<TradeSiteVersion, QualityCategory[]> = {
+  '1': POE1_QUALITY_CATEGORIES,
+  '2': QUALITY_CATEGORIES,
+};
+
+const PATTERNS_BY_VERSION: Record<TradeSiteVersion, Record<string, RegExp[]>> = {
+  '1': POE1_CATEGORY_PATTERNS,
+  '2': CATEGORY_PATTERNS,
+};
+
+// All categories whose patterns match the mod text (order follows the version's category list).
+export const categoriesForMod = (text: string, version: TradeSiteVersion = '2'): string[] =>
+  CATEGORIES_BY_VERSION[version].map((c) => c.key).filter((key) => PATTERNS_BY_VERSION[version][key].some((re) => re.test(text)));
 
 export interface ItemQuality {
   percent: number;
@@ -58,10 +104,20 @@ export interface ItemQuality {
 
 export type JewelleryKind = 'amulet' | 'ring';
 
-// The base-type line is the first `.item-property` inside the popup content; its text is
-// the generic category ("Amulet" / "Ring" / "Spear"). Returns the jewellery kind, or null
-// for anything that isn't a ring/amulet (so it's also the jewellery gate).
-export const jewelleryKind = (root: Element): JewelleryKind | null => {
+// Detect the jewellery kind from the result's icon art path (e.g. "2DItems/Rings/...").
+// Works on BOTH trade sites because each encodes the art path the same way — and unlike the
+// base-type line, it's reliable on PoE1, where the first `.item-property` is "Item Level".
+const jewelleryKindFromIcon = (root: Element): JewelleryKind | null => {
+  const icon = root.querySelector<HTMLImageElement>('.icon img');
+  const category = icon ? decodeIconCategory(icon.src) : null;
+  if (category === 'Rings') return 'ring';
+  if (category === 'Amulets') return 'amulet';
+  return null;
+};
+
+// Fallback: the base-type line is the first `.item-property` (its text is "Ring"/"Amulet" on
+// PoE2). Used when there's no icon to decode (e.g. unit tests).
+const jewelleryKindFromTypeLine = (root: Element): JewelleryKind | null => {
   const typeLine = root.querySelector('.item-popup__content .item-property');
   const text = (typeLine?.textContent || '').trim();
   if (/^Ring$/i.test(text)) return 'ring';
@@ -69,29 +125,37 @@ export const jewelleryKind = (root: Element): JewelleryKind | null => {
   return null;
 };
 
+// Returns the jewellery kind, or null for anything that isn't a ring/amulet (so it's also the
+// jewellery gate).
+export const jewelleryKind = (root: Element): JewelleryKind | null =>
+  jewelleryKindFromIcon(root) || jewelleryKindFromTypeLine(root);
+
 export const isJewellery = (root: Element): boolean => jewelleryKind(root) !== null;
 
-// Quality caps (PoE2, verified on poe2db). Base jewellery quality caps at 20%. The
-// "Essence of the Breach" currency adds a "+20% to Maximum Quality" prefix to a ring OR
-// amulet (→ 40%); a Breach Ring's implicit adds a further "+20% to Maximum Quality". The
-// presets are the milestones — each step is one "+20% to Maximum Quality" source: base
-// 20%, + Essence = 40%, + Breach Ring implicit = 60%. So amulet tops out at 40, ring at 60.
-const PRESET_PERCENTS: Record<JewelleryKind, number[]> = {
-  amulet: [0, 20, 40],
-  ring: [0, 20, 40, 60],
+// Quality caps. PoE2 (verified on poe2db): base jewellery quality caps at 20%; "Essence of the
+// Breach" adds "+20% to Maximum Quality" to a ring OR amulet (→ 40%), and a Breach Ring's
+// implicit adds a further +20% (→ ring 60%). PoE1 jewellery quality (from Catalysts) caps at
+// 20% for both rings and amulets. The presets are those milestones.
+const PRESET_PERCENTS: Record<TradeSiteVersion, Record<JewelleryKind, number[]>> = {
+  '1': {amulet: [0, 10, 20], ring: [0, 10, 20]},
+  '2': {amulet: [0, 20, 40], ring: [0, 20, 40, 60]},
 };
 
 // Quick-pick percentages for an item: its kind's caps, plus the item's own current quality
 // (so option-B can pre-select a non-round existing value like 12%), sorted + de-duped.
-export const presetPercents = (kind: JewelleryKind, currentQuality: number | null): number[] => {
-  const set = new Set<number>(PRESET_PERCENTS[kind]);
+export const presetPercents = (
+  kind: JewelleryKind,
+  currentQuality: number | null,
+  version: TradeSiteVersion = '2'
+): number[] => {
+  const set = new Set<number>(PRESET_PERCENTS[version][kind]);
   if (currentQuality !== null && currentQuality > 0) set.add(currentQuality);
   return [...set].sort((a, b) => a - b);
 };
 
 // Parse the "Quality (X Modifiers): +N%" line into percent + our category key. Returns
 // null when the item has no quality line (the common case for simulation).
-export const parseItemQuality = (root: Element): ItemQuality | null => {
+export const parseItemQuality = (root: Element, version: TradeSiteVersion = '2'): ItemQuality | null => {
   const span = root.querySelector('.item-property span[data-field="quality"]');
   if (!span) return null;
   const text = span.textContent || '';
@@ -101,7 +165,7 @@ export const parseItemQuality = (root: Element): ItemQuality | null => {
   let category: string | null = null;
   if (labelMatch) {
     const word = labelMatch[1].trim().toLowerCase();
-    const found = QUALITY_CATEGORIES.find((c) => c.label.toLowerCase() === word);
+    const found = CATEGORIES_BY_VERSION[version].find((c) => c.label.toLowerCase() === word);
     category = found ? found.key : null;
   }
   return {percent, category};
@@ -159,7 +223,15 @@ const MOD_VALUE_SELECTOR = [
 const BOX_CLASS = 'bt-qs';
 
 export default class QualitySimulator extends Service implements ItemResultsEnhancerService {
+  @service('trade-location')
+  tradeLocation: TradeLocation;
+
   slug = 'quality-simulator';
+
+  // The trade site we're on ('1' = PoE1 catalysts / 20% cap, '2' = PoE2 Breach catalysts).
+  private get gameVersion(): TradeSiteVersion {
+    return this.tradeLocation.version;
+  }
 
   enhance(itemElement: HTMLElement): void {
     const kind = jewelleryKind(itemElement);
@@ -168,8 +240,9 @@ export default class QualitySimulator extends Service implements ItemResultsEnha
     const typeLine = itemElement.querySelector('.item-popup__content .item-property');
     if (!typeLine) return;
 
-    const itemQuality = parseItemQuality(itemElement);
-    const box = this.buildBox(itemElement, kind, itemQuality);
+    const version = this.gameVersion;
+    const itemQuality = parseItemQuality(itemElement, version);
+    const box = this.buildBox(itemElement, kind, itemQuality, version);
     typeLine.insertAdjacentElement('afterend', box);
     this.repositionButtons(itemElement);
   }
@@ -192,7 +265,12 @@ export default class QualitySimulator extends Service implements ItemResultsEnha
     if (copyBar) copyBar.style.top = `${offsetTop}px`;
   }
 
-  private buildBox(root: HTMLElement, kind: JewelleryKind, itemQuality: ItemQuality | null): HTMLElement {
+  private buildBox(
+    root: HTMLElement,
+    kind: JewelleryKind,
+    itemQuality: ItemQuality | null,
+    version: TradeSiteVersion
+  ): HTMLElement {
     const box = window.document.createElement('div');
     box.className = BOX_CLASS;
 
@@ -212,21 +290,21 @@ export default class QualitySimulator extends Service implements ItemResultsEnha
       select.appendChild(option);
     };
     addOption('', '— none —');
-    QUALITY_CATEGORIES.forEach((c) => addOption(c.key, c.label));
+    CATEGORIES_BY_VERSION[version].forEach((c) => addOption(c.key, c.label));
 
     // Option B: pre-select the item's own category, and default the percent to its current
     // quality so the initial view is unchanged; otherwise category none + 0%.
     if (itemQuality && itemQuality.category) select.value = itemQuality.category;
     let selected = itemQuality ? itemQuality.percent : 0;
 
-    // Quick-pick percentage buttons sized to the item's real cap (amulet 40 / ring 60),
-    // plus the current quality if it isn't already one of them.
+    // Quick-pick percentage buttons sized to the item's real cap (PoE2 amulet 40 / ring 60,
+    // PoE1 20), plus the current quality if it isn't already one of them.
     const presets = window.document.createElement('span');
     presets.className = 'bt-qs-presets';
     const buttons: HTMLButtonElement[] = [];
-    const rerender = () => this.render(root, select.value, selected, itemQuality);
+    const rerender = () => this.render(root, select.value, selected, itemQuality, version);
     const paint = () => buttons.forEach((b) => b.classList.toggle('bt-qs-on', Number(b.dataset.value) === selected));
-    presetPercents(kind, itemQuality ? itemQuality.percent : null).forEach((value) => {
+    presetPercents(kind, itemQuality ? itemQuality.percent : null, version).forEach((value) => {
       const button = window.document.createElement('button');
       button.type = 'button';
       button.className = 'bt-qs-preset';
@@ -249,28 +327,34 @@ export default class QualitySimulator extends Service implements ItemResultsEnha
     form.appendChild(presets);
     box.appendChild(form);
 
-    // No own "actual quality" line: the trade2 page already renders the item's real
+    // No own "actual quality" line: the trade page already renders the item's real
     // "Quality (X Modifiers): +N%" property right below this box, which serves as the
     // reference. (The box still auto-fills from that quality — see select/selected above.)
 
-    this.render(root, select.value, selected, itemQuality); // initial paint of the mods
+    this.render(root, select.value, selected, itemQuality, version); // initial paint of the mods
     return box;
   }
 
   // Rebuild every mod from its captured base text: matched mods (carry the selected
   // category's tag) render green and scaled; everything else renders plain base text.
-  private render(root: HTMLElement, categoryKey: string, percent: number, itemQuality: ItemQuality | null): void {
+  private render(
+    root: HTMLElement,
+    categoryKey: string,
+    percent: number,
+    itemQuality: ItemQuality | null,
+    version: TradeSiteVersion
+  ): void {
     const qCurrent = itemQuality && itemQuality.category && itemQuality.category === categoryKey ? itemQuality.percent : 0;
     const factor = qualityFactor(percent, qCurrent);
 
     root.querySelectorAll<HTMLElement>(MOD_VALUE_SELECTOR).forEach((valueSpan) => {
-      // The mod text is in an inner <span> on live trade2, but some shapes put it directly
+      // The mod text is in an inner <span> on live trade pages, but some shapes put it directly
       // in the value span — handle both so a missing wrapper isn't a silent no-op.
       const inner = (valueSpan.querySelector('span') as HTMLElement | null) ?? valueSpan;
       if (inner.dataset.btQsBase === undefined) inner.dataset.btQsBase = inner.textContent || '';
       const base = inner.dataset.btQsBase;
 
-      const matched = Boolean(categoryKey) && categoriesForMod(base).includes(categoryKey);
+      const matched = Boolean(categoryKey) && categoriesForMod(base, version).includes(categoryKey);
       inner.textContent = '';
       if (!matched) {
         inner.textContent = base;

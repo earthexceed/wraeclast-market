@@ -10,6 +10,7 @@ import FlashMessages from 'ember-cli-flash/services/flash-messages';
 // Utilities
 import {buildGameIcon} from 'better-trading/utilities/game-icon';
 import {getCopyBar} from 'better-trading/utilities/copy-bar';
+import {decodeIconCategory} from 'better-trading/utilities/icon-category';
 
 const COPIED_FEEDBACK_MS = 1500;
 
@@ -42,29 +43,12 @@ const POB_IMPORTABLE_CATEGORIES = [
 const PAPERS_ICON_PATH =
   'M18.906 18.06v369.23C112.4 252.618 269.43 157.82 430.37 133.76L228.42 18.06H18.906zM325.72 179.327C200.38 223.948 86.405 311.052 18.157 422.568v33.602c113.074-111.488 277-176.38 434.373-175.25L325.72 179.326zm25.56 128.682c-125.218 21.642-246.974 83.6-333.124 174.812v10.297h58.916c113.9-65.58 251.166-95.325 379.492-80.814L351.28 308.008zm-2.253 120.96c-80.122 5.884-160.432 27.957-232.61 64.15h266.42l-33.81-64.15z';
 
-// PoE2 trade icon URLs encode the art path as base64 JSON inside the URL:
-//   https://web.poecdn.com/gen/image/<base64>/<hash>/<name>.png
-// where atob(<base64>) === [w, h, {"f": "2DItems/Weapons/OneHandWeapons/...", ...}].
-// A plain substring check on the URL can't see the category, so we decode it.
+// PoE1/PoE2 trade icon URLs encode the art path as base64 JSON inside the URL (see
+// decodeIconCategory); the category is the segment after "2DItems". A plain substring
+// check on the URL can't see it, so we decode it.
 export const isPobImportable = (iconSrc: string | null | undefined): boolean => {
-  if (!iconSrc) return false;
-
-  const encoded = iconSrc.split('/gen/image/')[1]?.split('/')[0];
-  if (!encoded) return false;
-
-  let artPath = '';
-  try {
-    const meta = JSON.parse(atob(encoded));
-    artPath = (Array.isArray(meta) && meta[2] && meta[2].f) || '';
-  } catch (_error) {
-    return false;
-  }
-
-  const parts = artPath.split('/');
-  const index = parts.indexOf('2DItems');
-  const category = index >= 0 ? parts[index + 1] : '';
-
-  return POB_IMPORTABLE_CATEGORIES.includes(category);
+  const category = decodeIconCategory(iconSrc);
+  return category !== null && POB_IMPORTABLE_CATEGORIES.includes(category);
 };
 
 export default class CopyItem extends Service implements ItemResultsEnhancerService {

@@ -79,6 +79,28 @@ describe('Unit | Services | ItemResults | Enhancers | QualitySimulator | categor
   });
 });
 
+describe('Unit | Services | ItemResults | Enhancers | QualitySimulator | PoE1 categories + caps', () => {
+  it('uses the PoE1 catalyst groups and a 20% cap for both rings and amulets', () => {
+    expect(presetPercents('amulet', null, '1')).to.deep.equal([0, 10, 20]);
+    expect(presetPercents('ring', null, '1')).to.deep.equal([0, 10, 20]);
+  });
+
+  it('maps PoE1 mods to their catalyst group (grouped life/mana, phys/chaos; resistance distinct)', () => {
+    expect(categoriesForMod('+55 to maximum Life', '1')).to.deep.equal(['life-and-mana']);
+    expect(categoriesForMod('+38 to maximum Mana', '1')).to.deep.equal(['life-and-mana']);
+    expect(categoriesForMod('+42% to Fire Resistance', '1')).to.deep.equal(['resistance']);
+    expect(categoriesForMod('Adds 5 to 12 Cold Damage to Attacks', '1')).to.have.members(['attack', 'elemental']);
+    expect(categoriesForMod('+24% to Global Critical Strike Multiplier', '1')).to.deep.equal(['critical']);
+  });
+
+  it('auto-fills a PoE1 "Quality (Life and Mana Modifiers)" line to its category', () => {
+    const el = window.document.createElement('div');
+    el.innerHTML =
+      '<div class="item-popup__content"><div class="item-property"><span data-field="quality" class="s lc"><span>Quality</span>: <span>(Life and Mana Modifiers): +20%</span></span></div></div>';
+    expect(parseItemQuality(el, '1')).to.deep.equal({percent: 20, category: 'life-and-mana'});
+  });
+});
+
 describe('Unit | Services | ItemResults | Enhancers | QualitySimulator | parse + detect', () => {
   const row = (inner: string) => {
     const el = window.document.createElement('div');
@@ -190,6 +212,11 @@ describe('Unit | Services | ItemResults | Enhancers | QualitySimulator | enhance
 
   beforeEach(function () {
     service = this.owner.lookup('service:item-results/enhancers/quality-simulator');
+    // These cases assert PoE2 behaviour (per-element categories, 40/60 caps); pin the version so
+    // they don't depend on the test env's path (which parses to PoE1). Same singleton the service
+    // injects, so the override is seen by enhance().
+    const tradeLocation = this.owner.lookup('service:trade-location');
+    Object.defineProperty(tradeLocation, 'version', {value: '2', configurable: true});
     container = window.document.createElement('div');
     container.style.display = 'none';
     window.document.body.prepend(container);
