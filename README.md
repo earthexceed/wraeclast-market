@@ -24,7 +24,7 @@ In the meantime, you can continue to use version [1.3.2 on Firefox](https://addo
 - **Copy for PoB** — one-click export an item to import into Path of Building
 - **Copy for CoE** — one-click export an item to import into [Craft of Exile](https://www.craftofexile.com/) (PoE 2)
 - **Quality simulator** (PoE 1 & 2) — preview how catalyst quality scales ring & amulet mods, live (PoE 2 Breach catalysts up to 40/60%; PoE 1 catalysts up to 20%)
-- **Mageblood Legacy tooltips** (PoE 2) — hover a **Legacy of X** mod to see its effect, with the "increased effect per duplicate" maths worked out (duplicate count → belt-wide multiplier → each Legacy's effective value), matching Path of Building
+- **Mageblood Legacy effects** (PoE 2) — prints each **Legacy of X** effect inline (the card only shows the name), with the "increased effect per duplicate" maths worked out (base → +N% increased effect → final, applied to every Legacy), matching Path of Building; duplicated Legacies highlighted green
 - Equivalent pricing across currencies (powered by [poe.ninja](https://poe.ninja/)) — PoE 1 prices shown in Divine & Chaos
 - Bookmarks manager — organize searches into folders with class / currency icons
 - Pin items (with quick-jump) & search history

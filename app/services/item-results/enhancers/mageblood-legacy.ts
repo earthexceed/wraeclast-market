@@ -6,17 +6,15 @@ import window from 'ember-window-mock';
 import {ItemResultsEnhancerService} from 'better-trading/types/item-results';
 
 // PoE2's Mageblood (Utility Belt) grants four "Legacy of X" mods (Mage's Legacies) but the
-// trade card only prints the NAME, never the effect. This enhancer adds a styled hover tooltip
-// to each Legacy line showing what it does — and, when the belt has the corrupted "All Mage's
-// Legacies have X% increased effect per duplicate" mod, the duplicate maths.
+// trade card only prints the NAME, never the effect. This enhancer prints each Legacy's effect
+// inline on the line below it (in orange) and, when the belt has the corrupted "All Mage's
+// Legacies have X% increased effect per duplicate" mod, the duplicate maths. It also greens the
+// duplicated Legacy lines and the duplicate-effect mod (when it's actually doing something).
 //
-// The corrupted mod boosts EVERY Mage's Legacy ("All ..."), by X% × (number of duplicate
-// Legacies on the belt) — so even a non-duplicated Legacy is scaled when the belt has any
-// duplicate elsewhere. The tooltip makes that explicit.
-//
-// The effect table is static game data (poe2db, verified live on trade2). A Legacy not in the
-// table still counts toward the duplicate maths; its tooltip just says the effect is unknown
-// rather than guessing.
+// Maths (verified against Path of Building, src/Modules/CalcPerform.lua + the official PoE forum):
+// duplicates D = totalCopies − distinctNames; the multiplier M = 1 + D·(pct/100) applies to EVERY
+// Legacy (not only the duplicated ones); each Legacy's value = floor(M · base), applied ONCE
+// (duplicate copies don't stack their base — the extra copy only raises M).
 interface LegacyEffect {
   stats: Array<[number, string]>;
   note?: string;
@@ -45,7 +43,7 @@ const isAdditive = (suffix: string): boolean => !/increased|reduced|more|less/i.
 const formatStat = (value: number, suffix: string): string =>
   `${isAdditive(suffix) && value >= 0 ? '+' : ''}${value}${suffix}`;
 
-// Compact form for the foot's "base …" recap: keep the value + % (or nothing), drop the words.
+// Compact form for the "Base …" recap: value + % (or nothing), drop the words.
 const compactStat = (value: number, suffix: string): string =>
   `${isAdditive(suffix) && value >= 0 ? '+' : ''}${value}${suffix.startsWith('%') ? '%' : ''}`;
 
@@ -56,9 +54,9 @@ const LEGACY_PATTERN = /^Legacy of (.+)$/;
 // "All Mage's Legacies have 37% increased effect per duplicate Mage's Legacy you have".
 const DUPLICATE_PATTERN = /Mage'?s Legacies have (\d+)% increased effect per duplicate/i;
 
-const LEGACY_CLASS = 'bt-mb-legacy';
-const DUPLICATE_CLASS = 'bt-mb-duplicate';
-const TIP_CLASS = 'bt-mb-tip';
+const DETAIL_CLASS = 'bt-mb-detail';
+const DUP_MOD_CLASS = 'bt-mb-dup-mod'; // a Legacy that appears 2+ times → highlighted green
+const ACTIVE_DUP_CLASS = 'bt-mb-active-dup'; // the duplicate-effect mod, when it's actually doing something
 
 interface LegacyHit {
   mod: HTMLElement;
@@ -69,7 +67,7 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
   slug = 'mageblood-legacy';
 
   enhance(itemElement: HTMLElement): void {
-    if (itemElement.querySelector(`.${LEGACY_CLASS}`)) return; // guard against re-injection
+    if (itemElement.querySelector(`.${DETAIL_CLASS}`)) return; // guard against re-injection
 
     const legacies: LegacyHit[] = [];
     let duplicateMod: HTMLElement | null = null;
@@ -105,28 +103,25 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
     });
     const duplicates = legacies.length - Object.keys(counts).length;
     const multiplier = duplicateMod ? 1 + (duplicatePercent / 100) * duplicates : 1;
+    const increasedEffect = Math.round((multiplier - 1) * 100); // total "increased effect" %
 
     legacies.forEach(({mod, name}) => {
-      mod.classList.add(LEGACY_CLASS);
-      this.attachTooltip(
-        mod,
-        this.buildLegacyTooltip(name, counts[name.toLowerCase()], multiplier, duplicates, Boolean(duplicateMod))
-      );
+      if (counts[name.toLowerCase()] > 1) mod.classList.add(DUP_MOD_CLASS); // green the duplicates
+      mod.insertAdjacentElement('afterend', this.buildLegacyDetail(name, multiplier, increasedEffect));
     });
 
     if (duplicateMod) {
-      (duplicateMod as HTMLElement).classList.add(DUPLICATE_CLASS);
-      this.attachTooltip(
-        duplicateMod,
-        this.buildDuplicateTooltip(duplicatePercent, duplicates, multiplier, counts, displayNames)
+      // Green the duplicate-effect mod only when it's actually boosting something.
+      if (duplicates > 0) (duplicateMod as HTMLElement).classList.add(ACTIVE_DUP_CLASS);
+      (duplicateMod as HTMLElement).insertAdjacentElement(
+        'afterend',
+        this.buildDuplicateDetail(duplicatePercent, duplicates, multiplier, increasedEffect, counts, displayNames)
       );
     }
-  }
 
-  // Replace any previous tooltip on the mod, then append the fresh one.
-  private attachTooltip(mod: HTMLElement, tip: HTMLElement): void {
-    mod.querySelector(`.${TIP_CLASS}`)?.remove();
-    mod.appendChild(tip);
+    // The inline details push the mods down; re-anchor apply-stat-filter's Apply button + the
+    // copy bar (positioned absolutely from a now-stale layout) below everything.
+    this.repositionApplyControls(itemElement);
   }
 
   private div(className: string, text?: string): HTMLElement {
@@ -136,98 +131,74 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
     return el;
   }
 
-  private buildLegacyTooltip(
-    name: string,
-    count: number,
-    multiplier: number,
-    duplicates: number,
-    hasDuplicateMod: boolean
-  ): HTMLElement {
-    const tip = this.div(TIP_CLASS);
-
-    const head = this.div('bt-mb-tip-head');
-    head.appendChild(this.div('bt-mb-tip-name', `Legacy of ${name}`));
-    if (count > 1) head.appendChild(this.div('bt-mb-tip-badge', `×${count}`));
-    tip.appendChild(head);
-
+  private buildLegacyDetail(name: string, multiplier: number, increasedEffect: number): HTMLElement {
+    const detail = this.div(DETAIL_CLASS);
     const effect = LEGACY_EFFECTS[name.toLowerCase()];
     if (!effect) {
-      tip.appendChild(this.div('bt-mb-tip-unknown', 'Effect not in the database yet.'));
-      return tip;
+      detail.appendChild(this.div('bt-mb-detail-line', 'Effect not in the database yet.'));
+      return detail;
     }
 
-    // A Legacy applies its effect ONCE regardless of how many copies the belt has — extra copies
-    // only raise the belt-wide multiplier (verified against Path of Building: each Legacy's value
-    // is floor(globalEffect * base), NOT * copies). The multiplier hits EVERY Legacy, including
-    // non-duplicated ones.
     const boosted = multiplier > 1.0001;
-    const stats = this.div('bt-mb-tip-stats');
-    effect.stats.forEach(([value, suffix]) => {
-      const shown = boosted ? Math.floor(value * multiplier) : value;
-      const line = this.div(`bt-mb-tip-line${boosted ? ' bt-mb-tip-boost' : ''}`, formatStat(shown, suffix));
-      stats.appendChild(line);
+    effect.stats.forEach(([base, suffix]) => {
+      if (boosted) {
+        const final = Math.floor(base * multiplier);
+        detail.appendChild(
+          this.div(
+            'bt-mb-detail-line',
+            `Base ${compactStat(base, suffix)} · +${increasedEffect}% increased effect = ${formatStat(final, suffix)}`
+          )
+        );
+      } else {
+        detail.appendChild(this.div('bt-mb-detail-line', formatStat(base, suffix)));
+      }
     });
-    if (effect.note) stats.appendChild(this.div('bt-mb-tip-note-stat', effect.note));
-    tip.appendChild(stats);
-
-    // Foot: where the numbers come from, and (for a duplicated Legacy) that copies don't stack.
-    if (boosted) {
-      tip.appendChild(
-        this.div(
-          'bt-mb-tip-foot',
-          `×${multiplier.toFixed(2)} effect (from ${duplicates} duplicate${duplicates > 1 ? 's' : ''} on the belt) · base ${effect.stats
-            .map(([v, s]) => compactStat(v, s))
-            .join(' / ')}`
-        )
-      );
-    } else if (hasDuplicateMod) {
-      // The belt has the "increased effect per duplicate" mod but no duplicate Legacies, so the
-      // multiplier is ×1.00 — spell that out so it's clear why the value is just the base.
-      tip.appendChild(this.div('bt-mb-tip-foot', 'No duplicate Legacies on this belt → ×1.00 (no bonus).'));
-    }
-    if (count > 1) {
-      tip.appendChild(
-        this.div('bt-mb-tip-foot', "Duplicate — copies don't stack; each extra copy raises the multiplier above.")
-      );
-    }
-
-    return tip;
+    if (effect.note) detail.appendChild(this.div('bt-mb-detail-line', effect.note));
+    return detail;
   }
 
-  private buildDuplicateTooltip(
+  private buildDuplicateDetail(
     percent: number,
     duplicates: number,
     multiplier: number,
+    increasedEffect: number,
     counts: Record<string, number>,
     displayNames: Record<string, string>
   ): HTMLElement {
-    const tip = this.div(TIP_CLASS);
-    const head = this.div('bt-mb-tip-head');
-    head.appendChild(this.div('bt-mb-tip-name', "Mage's Legacy duplicates"));
-    tip.appendChild(head);
-
-    const stats = this.div('bt-mb-tip-stats');
+    const detail = this.div(DETAIL_CLASS);
     if (duplicates <= 0) {
-      stats.appendChild(this.div('bt-mb-tip-line', 'All Mage’s Legacies are unique — no bonus.'));
-      tip.appendChild(stats);
-      tip.appendChild(this.div('bt-mb-tip-foot', `${percent}% increased effect per duplicate · ×1.00`));
-      return tip;
+      detail.appendChild(this.div('bt-mb-detail-line', 'No duplicate Legacies → ×1.00 (no bonus).'));
+      return detail;
     }
-
-    stats.appendChild(this.div('bt-mb-tip-line bt-mb-tip-boost', `All Mage’s Legacies: ×${multiplier.toFixed(2)}`));
-    tip.appendChild(stats);
-
     const dupList = Object.keys(counts)
       .filter((key) => counts[key] > 1)
       .map((key) => `${counts[key]}× ${displayNames[key] || titleCase(key)}`)
       .join(', ');
-    tip.appendChild(
+    detail.appendChild(
       this.div(
-        'bt-mb-tip-foot',
-        `${percent}% per duplicate · ${duplicates} duplicate${duplicates > 1 ? 's' : ''} (${dupList})`
+        'bt-mb-detail-line',
+        `${duplicates} duplicate${duplicates > 1 ? 's' : ''} (${dupList}) × ${percent}% = +${increasedEffect}% increased effect → all Mage's Legacies ×${multiplier.toFixed(2)}`
       )
     );
-    return tip;
+    return detail;
+  }
+
+  private repositionApplyControls(root: HTMLElement): void {
+    const button = root.querySelector<HTMLElement>('.bt-apply-stat-filter-button');
+    const container = button?.parentElement as HTMLElement | null;
+    if (!button || !container) return;
+
+    const containerTop = container.getBoundingClientRect().top;
+    let maxBottom = 0;
+    container.querySelectorAll<HTMLElement>(`.item-mod, .${DETAIL_CLASS}`).forEach((el) => {
+      maxBottom = Math.max(maxBottom, el.getBoundingClientRect().bottom - containerTop);
+    });
+    if (maxBottom <= 0) return; // no layout (e.g. tests) — leave the original position
+
+    const top = `${maxBottom + 6}px`;
+    button.style.top = top;
+    const copyBar = container.querySelector<HTMLElement>('.bt-copy-buttons');
+    if (copyBar) copyBar.style.top = top;
   }
 }
 
