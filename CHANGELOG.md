@@ -20,6 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   Life and Mana, Defence, Resistance, Elemental, Attribute, Physical and Chaos, Critical,
   Speed) and a quality %, and the matched mods rescale live in green. Sized to the PoE 1 cap
   (**20%**).
+- **Mageblood Legacy tooltips** (PoE 2) — hover any **Legacy of X** mod on a Mageblood to see
+  what it actually does (the trade card only prints the name). When the belt has the corrupted
+  **"increased effect per duplicate"** mod, the tooltip also does the maths: it counts the
+  duplicate Legacies, applies the per-duplicate multiplier, and shows each Legacy's stacked,
+  scaled total (e.g. 2× Legacy of Topaz at +37%/dup → +164% Lightning Resistance).
 
 ### Changed
 

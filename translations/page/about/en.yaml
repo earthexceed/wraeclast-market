@@ -11,6 +11,8 @@ page:
       copy-item: Copy item for Path of Building
       quality-projection: Show stats projected to 20% quality
       quality-simulator: Simulate quality on rings & amulets
+      copy-craft-of-exile: Copy item for Craft of Exile
+      mageblood-legacy: Mageblood — show Legacy effects & duplicate maths (PoE 2)
     github:
       title: On GitHub
       description: This PoE 2 fork — to contribute, report issues or simply browse the code.
