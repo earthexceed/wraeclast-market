@@ -3,27 +3,7 @@
 All notable changes to **Wraeclast Market** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [2.3.0] — Path of Exile 1 support for pricing & quality tools
-
-Path of Exile now serves its trade site (`/trade`) with the same modern layout as PoE 2, so
-the toolkit now works there too — these are the pieces that needed PoE 1 wiring:
-
-### Added
-
-- **Equivalent pricing on PoE 1** — each listing's price is converted and shown in **Divine**
-  and **Chaos**, powered by poe.ninja's current economy data. (poe.ninja retired the old PoE 1
-  currency endpoint this extension used; it now reads the new unified exchange data.)
-- **Quality simulator on PoE 1 rings & amulets** — pick a **Catalyst** group (Attack, Caster,
-  Life and Mana, Defence, Resistance, Elemental, Attribute, Physical and Chaos, Critical,
-  Speed) and a quality %, and the matched mods rescale live in green. Sized to the PoE 1 cap
-  (**20%**).
-
-### Fixed
-
-- Apply, Copy for PoB, mod highlighting and the rest already worked on PoE 1 (shared layout);
-  tidied Apply's fallback and the item-level read so the PoE 1 max-sockets warning works again.
-
-## [2.2.0] — Craft of Exile export, in-place Apply & polish
+## [2.2.0] — Craft of Exile export, in-place Apply, PoE 1 support & polish
 
 ### Added
 
@@ -32,6 +12,14 @@ the toolkit now works there too — these are the pieces that needed PoE 1 wirin
   (PoE2) to load the base and have the craftable mods matched automatically.
 - The two copy buttons are now compact **PoB** / **CoE** side by side, each showing its full
   name in a tooltip on hover.
+- **Equivalent pricing on PoE 1** — Path of Exile now serves its trade site (`/trade`) with the
+  same modern layout as PoE 2, so each listing's price is converted and shown in **Divine** and
+  **Chaos**, powered by poe.ninja's current economy data. (poe.ninja retired the old PoE 1
+  currency endpoint this extension used; it now reads the new unified exchange data.)
+- **Quality simulator on PoE 1 rings & amulets** — pick a **Catalyst** group (Attack, Caster,
+  Life and Mana, Defence, Resistance, Elemental, Attribute, Physical and Chaos, Critical,
+  Speed) and a quality %, and the matched mods rescale live in green. Sized to the PoE 1 cap
+  (**20%**).
 
 ### Changed
 
@@ -52,6 +40,8 @@ the toolkit now works there too — these are the pieces that needed PoE 1 wirin
 ### Fixed
 
 - The Copy-for-PoB button no longer floats over the mods on rings & amulets.
+- Apply, Copy for PoB, mod highlighting and the rest already worked on PoE 1 (shared layout);
+  tidied Apply's fallback and the item-level read so the PoE 1 max-sockets warning works again.
 
 ## [2.1.0] — Quality tools, PoB copy & filter upgrades
 
@@ -97,7 +87,6 @@ Rebrand of Better Trading into **Wraeclast Market**, with full Path of Exile 2 s
 - **Highlight searched mods**, **regroup similar results**, **bookmarks** (folders with
   class/ascendancy + currency icons), and **pin items**.
 
-[2.3.0]: https://github.com/earthexceed/wraeclast-market
 [2.2.0]: https://github.com/earthexceed/wraeclast-market
 [2.1.0]: https://github.com/earthexceed/wraeclast-market
 [2.0.0]: https://github.com/earthexceed/wraeclast-market
