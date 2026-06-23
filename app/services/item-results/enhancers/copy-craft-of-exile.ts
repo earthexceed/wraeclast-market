@@ -9,17 +9,15 @@ import FlashMessages from 'ember-cli-flash/services/flash-messages';
 
 // Utilities
 import {buildGameIcon} from 'better-trading/utilities/game-icon';
+import {getCopyBar} from 'better-trading/utilities/copy-bar';
 import {isPobImportable} from 'better-trading/services/item-results/enhancers/copy-item';
 
 const COPIED_FEEDBACK_MS = 1500;
 
 // The rendered item (header → mods) lives in `.item-popup`.
 const ITEM_POPUP_SELECTOR = '.item-popup';
-// The Apply button (apply-stat-filter) is our vertical anchor; we stack above the
-// Copy-for-PoB button which sits at the Apply button's height.
+// The Apply button (apply-stat-filter) anchors the copy bar this button shares with Copy-for-PoB.
 const APPLY_BUTTON_SELECTOR = '.bt-apply-stat-filter-button';
-// One control-row up, so this sits just above the Copy-for-PoB button.
-const STACK_OFFSET = 26;
 
 // "anvil-impact" by Lorc — game-icons.net, CC BY 3.0. Foreground path only, currentColor.
 const ANVIL_ICON_PATH =
@@ -45,17 +43,10 @@ export default class CopyCraftOfExile extends Service implements ItemResultsEnha
     const applyButton = itemElement.querySelector<HTMLElement>(APPLY_BUTTON_SELECTOR);
     if (!applyButton || !applyButton.parentElement) return;
 
-    const container = applyButton.parentElement;
-    if (container.querySelector('.bt-copy-coe-button')) return; // guard against double-enhance
+    const bar = getCopyBar(applyButton);
+    if (bar.querySelector('.bt-copy-coe-button')) return; // guard against double-enhance
 
-    const button = this.renderCopyButton();
-    button.style.position = 'absolute';
-    button.style.left = '6px';
-    const applyTop = parseFloat(applyButton.style.top) || applyButton.offsetTop;
-    button.style.top = `${applyTop - STACK_OFFSET}px`;
-    if (applyButton.style.width) button.style.width = applyButton.style.width;
-
-    container.appendChild(button);
+    bar.appendChild(this.renderCopyButton());
   }
 
   clear() {
@@ -64,7 +55,8 @@ export default class CopyCraftOfExile extends Service implements ItemResultsEnha
 
   private renderCopyButton(): HTMLButtonElement {
     const button = window.document.createElement('button');
-    button.classList.add('btn', 'btn-default', 'bt-copy-coe-button');
+    button.classList.add('btn', 'btn-default', 'bt-copy-btn', 'bt-copy-coe-button');
+    button.dataset.tooltip = this.intl.t('item-results.copy-craft-of-exile.tooltip');
     button.appendChild(buildGameIcon(ANVIL_ICON_PATH));
 
     const label = window.document.createElement('span');

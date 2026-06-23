@@ -9,6 +9,7 @@ import FlashMessages from 'ember-cli-flash/services/flash-messages';
 
 // Utilities
 import {buildGameIcon} from 'better-trading/utilities/game-icon';
+import {getCopyBar} from 'better-trading/utilities/copy-bar';
 
 const COPIED_FEEDBACK_MS = 1500;
 
@@ -81,27 +82,16 @@ export default class CopyItem extends Service implements ItemResultsEnhancerServ
     const iconElement = itemElement.querySelector<HTMLImageElement>('.icon img');
     if (!isPobImportable(iconElement?.src)) return;
 
-    // Use the Apply button as the vertical anchor: place Copy at the same height but
-    // on the LEFT, mirroring Apply on the right — it sits in the otherwise-empty
-    // bottom-left of the card instead of stacking under Apply. apply-stat-filter runs
-    // before this enhancer (alphabetical registration), so its button already exists
-    // for items with filterable mods. No Apply button (modless item, or the enhancer
-    // is disabled) means no anchor — skip.
+    // The Apply button (apply-stat-filter runs earlier) is the vertical anchor: the copy bar
+    // sits at the same height on the LEFT, in the otherwise-empty bottom-left corner. No Apply
+    // button (modless item / enhancer disabled) means no anchor — skip.
     const applyButton = itemElement.querySelector<HTMLElement>(APPLY_BUTTON_SELECTOR);
     if (!applyButton || !applyButton.parentElement) return;
 
-    const container = applyButton.parentElement;
+    const bar = getCopyBar(applyButton);
+    if (bar.querySelector('.bt-copy-item-button')) return; // guard against double-enhance
 
-    // Defensive: avoid a duplicate button if enhance ever runs twice on a row.
-    if (container.querySelector('.bt-copy-item-button')) return;
-
-    const button = this.renderCopyButton();
-    button.style.position = 'absolute';
-    button.style.left = '6px';
-    button.style.top = `${parseFloat(applyButton.style.top) || applyButton.offsetTop}px`;
-    if (applyButton.style.width) button.style.width = applyButton.style.width;
-
-    container.appendChild(button);
+    bar.appendChild(this.renderCopyButton());
   }
 
   clear() {
@@ -111,7 +101,8 @@ export default class CopyItem extends Service implements ItemResultsEnhancerServ
   private renderCopyButton(): HTMLButtonElement {
     const button = window.document.createElement('button');
     // standard button styles from pathofexile.com + our override
-    button.classList.add('btn', 'btn-default', 'bt-copy-item-button');
+    button.classList.add('btn', 'btn-default', 'bt-copy-btn', 'bt-copy-item-button');
+    button.dataset.tooltip = this.intl.t('item-results.copy-item.tooltip');
     button.appendChild(buildGameIcon(PAPERS_ICON_PATH));
 
     // The label lives in its own span so feedback can swap the text without

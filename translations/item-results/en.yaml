@@ -13,10 +13,12 @@ item-results:
     toggle: Show / hide the filter controls
     rate-limited: The trade site is rate-limiting requests. Wait ~60 seconds and try Apply again.
   copy-item:
-    button: Copy for PoB
-    copied: ✓ Copied
+    button: PoB
+    tooltip: Copy for Path of Building
+    copied: ✓
     error: Could not copy this item.
   copy-craft-of-exile:
-    button: Copy for CoE
-    copied: ✓ Copied
+    button: CoE
+    tooltip: Copy for Craft of Exile
+    copied: ✓
     error: Could not copy this item.

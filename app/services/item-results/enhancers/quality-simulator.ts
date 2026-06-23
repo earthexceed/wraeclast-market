@@ -174,12 +174,11 @@ export default class QualitySimulator extends Service implements ItemResultsEnha
     this.repositionButtons(itemElement);
   }
 
-  // apply-stat-filter, copy-item and copy-craft-of-exile (all run earlier, alphabetically)
-  // position their absolute buttons — "Apply" (bottom-right), "Copy for PoB" (bottom-left) and
-  // "Copy for CoE" (stacked one row above PoB) — from a one-time snapshot of the mod layout.
-  // Inserting our box above the mods shifts them down, leaving that snapshot too high (the
-  // buttons end up floating among the rows). Recompute their top from the post-insert layout,
-  // using the same anchor apply-stat-filter uses: the last mod carrying a control.
+  // The Apply button (apply-stat-filter) and the copy bar (Copy-for-PoB + Copy-for-CoE share
+  // the .bt-copy-buttons bar) are positioned from a one-time snapshot of the mod layout.
+  // Inserting our box above the mods shifts them down, leaving that snapshot too high (they
+  // float among the rows). Recompute their top from the post-insert layout, anchored to the
+  // last mod carrying a control.
   private repositionButtons(root: HTMLElement): void {
     const button = root.querySelector<HTMLElement>('.bt-apply-stat-filter-button');
     const container = button?.parentElement as HTMLElement | null;
@@ -189,10 +188,8 @@ export default class QualitySimulator extends Service implements ItemResultsEnha
     if (!anchorMod) return;
     const offsetTop = anchorMod.getBoundingClientRect().bottom - container.getBoundingClientRect().top + 4;
     button.style.top = `${offsetTop}px`;
-    const copyButton = container.querySelector<HTMLElement>('.bt-copy-item-button');
-    if (copyButton) copyButton.style.top = `${offsetTop}px`;
-    const coeButton = container.querySelector<HTMLElement>('.bt-copy-coe-button');
-    if (coeButton) coeButton.style.top = `${offsetTop - 26}px`; // stacked above Copy-for-PoB
+    const copyBar = container.querySelector<HTMLElement>('.bt-copy-buttons');
+    if (copyBar) copyBar.style.top = `${offsetTop}px`;
   }
 
   private buildBox(root: HTMLElement, kind: JewelleryKind, itemQuality: ItemQuality | null): HTMLElement {
