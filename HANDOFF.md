@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-23
 
-PoE & PoE2 fork of **Better Trading** (Chrome MV3 extension enhancing pathofexile.com **trade** + **trade2**). Code in `better-trading-poe2/`. Rebranded **Wraeclast Market**. Now at **v2.2.0** — PoE1 support for pricing & quality tools (zip built, awaiting the user's store upload).
+PoE & PoE2 fork of **Better Trading** (Chrome MV3 extension enhancing pathofexile.com **trade** + **trade2**). Code in `better-trading-poe2/`. Rebranded **Wraeclast Market**. Now at **v2.2.0** (unreleased — the prior 2.2.0 store review was cancelled, so the version is being reused). This build bundles: CoE export + in-place Apply, **PoE1 support** (pricing + quality tools), the **PoE2 off-hand copy-button fix** (Talisman/Focus), and the **Mageblood Legacy tooltip** enhancer. Zip built, awaiting the user's store upload.
 
 ## Current state (TL;DR)
 
