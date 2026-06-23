@@ -3,6 +3,36 @@
 All notable changes to **Wraeclast Market** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.2.0] — Craft of Exile export, in-place Apply & polish
+
+### Added
+
+- **Copy for Craft of Exile** — a new **CoE** button (beside Copy for PoB) copies the item in
+  Craft of Exile's import format; paste it into [craftofexile.com](https://www.craftofexile.com/)
+  (PoE2) to load the base and have the craftable mods matched automatically.
+- The two copy buttons are now compact **PoB** / **CoE** side by side, each showing its full
+  name in a tooltip on hover.
+
+### Changed
+
+- **Apply now searches in place** — it adds your filters to the current search and re-runs it
+  without a full-page reload. It's faster, far lighter on the trade site's rate limit, and the
+  result you filtered from no longer "disappears" (the reload was being rate-limited and
+  blanking the page). It also keeps the search's item type / name.
+- **Unticking a mod and pressing Apply now removes that filter** (it used to linger and
+  re-tick).
+- **The min input starts empty**, mirroring the trade site's own filters — tick a mod to search
+  for its presence, or type a value.
+- **The hide/show eye toggles the filter controls on every result at once**, not just one.
+- **Pinned items** show the clean item card (the extension's own controls are stripped) with the
+  listing **Fee** + coin, and pinning plays a quick "fly to the panel" animation.
+- **Currency-equivalent prices** sit on their own line, clearly separated from the trade site's
+  gold **Fee**.
+
+### Fixed
+
+- The Copy-for-PoB button no longer floats over the mods on rings & amulets.
+
 ## [2.1.0] — Quality tools, PoB copy & filter upgrades
 
 ### Added
@@ -47,5 +77,6 @@ Rebrand of Better Trading into **Wraeclast Market**, with full Path of Exile 2 s
 - **Highlight searched mods**, **regroup similar results**, **bookmarks** (folders with
   class/ascendancy + currency icons), and **pin items**.
 
+[2.2.0]: https://github.com/earthexceed/wraeclast-market
 [2.1.0]: https://github.com/earthexceed/wraeclast-market
 [2.0.0]: https://github.com/earthexceed/wraeclast-market
