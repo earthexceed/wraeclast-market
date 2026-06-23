@@ -147,26 +147,35 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
       return tip;
     }
 
-    const boosted = count > 1 || multiplier > 1.0001;
+    // A Legacy applies its effect ONCE regardless of how many copies the belt has — extra copies
+    // only raise the belt-wide multiplier (verified against Path of Building: each Legacy's value
+    // is floor(globalEffect * base), NOT * copies). The multiplier hits EVERY Legacy, including
+    // non-duplicated ones.
+    const boosted = multiplier > 1.0001;
     const stats = this.div('bt-mb-tip-stats');
-    // Lead with the EFFECTIVE values (what the belt actually gives), highlighted when boosted.
     effect.stats.forEach(([value, suffix]) => {
-      const shown = boosted ? Math.round(value * count * multiplier) : value;
+      const shown = boosted ? Math.floor(value * multiplier) : value;
       const line = this.div(`bt-mb-tip-line${boosted ? ' bt-mb-tip-boost' : ''}`, formatStat(shown, suffix));
       stats.appendChild(line);
     });
-    if (effect.note) stats.appendChild(this.div('bt-mb-tip-note-stat', effect.note + (count > 1 ? ` (×${count})` : '')));
+    if (effect.note) stats.appendChild(this.div('bt-mb-tip-note-stat', effect.note));
     tip.appendChild(stats);
 
-    // Foot: explain where the numbers come from (copies stacking + the belt-wide multiplier).
+    // Foot: where the numbers come from, and (for a duplicated Legacy) that copies don't stack.
     if (boosted) {
-      const parts: string[] = [];
-      if (count > 1) parts.push(`${count} copies`);
-      if (multiplier > 1.0001) {
-        parts.push(`×${multiplier.toFixed(2)} (from ${duplicates} duplicate${duplicates > 1 ? 's' : ''} on the belt)`);
-      }
-      parts.push(`base ${effect.stats.map(([v, s]) => compactStat(v, s)).join(' / ')}`);
-      tip.appendChild(this.div('bt-mb-tip-foot', parts.join(' · ')));
+      tip.appendChild(
+        this.div(
+          'bt-mb-tip-foot',
+          `×${multiplier.toFixed(2)} effect (from ${duplicates} duplicate${duplicates > 1 ? 's' : ''} on the belt) · base ${effect.stats
+            .map(([v, s]) => compactStat(v, s))
+            .join(' / ')}`
+        )
+      );
+    }
+    if (count > 1) {
+      tip.appendChild(
+        this.div('bt-mb-tip-foot', "Duplicate — copies don't stack; each extra copy raises the multiplier above.")
+      );
     }
 
     return tip;
