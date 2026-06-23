@@ -6,10 +6,10 @@ import window from 'ember-window-mock';
 import {ItemResultsEnhancerService} from 'better-trading/types/item-results';
 
 // PoE2's Mageblood (Utility Belt) grants four "Legacy of X" mods (Mage's Legacies) but the
-// trade card only prints the NAME, never the effect. This enhancer prints each Legacy's effect
-// inline on the line below it (in orange) and, when the belt has the corrupted "All Mage's
-// Legacies have X% increased effect per duplicate" mod, the duplicate maths. It also greens the
-// duplicated Legacy lines and the duplicate-effect mod (when it's actually doing something).
+// trade card only prints the NAME, never the effect. This enhancer reveals each Legacy's effect
+// in a floating tooltip centred over the item card on hover (so the mod lines never move), shows
+// an always-visible duplicate-maths summary under the corrupted "increased effect per duplicate"
+// mod, and greens the duplicated Legacies + the active duplicate mod.
 //
 // Maths (verified against Path of Building, src/Modules/CalcPerform.lua + the official PoE forum):
 // duplicates D = totalCopies − distinctNames; the multiplier M = 1 + D·(pct/100) applies to EVERY
@@ -54,8 +54,9 @@ const LEGACY_PATTERN = /^Legacy of (.+)$/;
 // "All Mage's Legacies have 37% increased effect per duplicate Mage's Legacy you have".
 const DUPLICATE_PATTERN = /Mage'?s Legacies have (\d+)% increased effect per duplicate/i;
 
-const LEGACY_CLASS = 'bt-mb-legacy'; // every Legacy mod (its effect detail is hover-revealed)
-const DETAIL_CLASS = 'bt-mb-detail'; // per-Legacy effect detail — hidden, slides in on hover
+const LEGACY_CLASS = 'bt-mb-legacy'; // every Legacy mod (its effect tooltip shows on hover)
+const TIP_CLASS = 'bt-mb-tip'; // floating effect tooltip, centred over the card
+const SHOW_CLASS = 'bt-mb-show'; // toggled on the tooltip while its Legacy is hovered
 const SUMMARY_CLASS = 'bt-mb-summary'; // duplicate-maths summary under the dup mod — always visible
 const DUP_MOD_CLASS = 'bt-mb-dup-mod'; // a Legacy that appears 2+ times → highlighted green
 const ACTIVE_DUP_CLASS = 'bt-mb-active-dup'; // the duplicate-effect mod, when it's actually doing something
@@ -69,7 +70,7 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
   slug = 'mageblood-legacy';
 
   enhance(itemElement: HTMLElement): void {
-    if (itemElement.querySelector(`.${DETAIL_CLASS}`)) return; // guard against re-injection
+    if (itemElement.querySelector(`.${LEGACY_CLASS}`)) return; // guard against re-injection
 
     const legacies: LegacyHit[] = [];
     let duplicateMod: HTMLElement | null = null;
@@ -107,23 +108,32 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
     const multiplier = duplicateMod ? 1 + (duplicatePercent / 100) * duplicates : 1;
     const increasedEffect = Math.round((multiplier - 1) * 100); // total "increased effect" %
 
+    // The tooltips are centred over the item card (so they never shift the mod layout). Anchor
+    // them to the popup; the popup needs a positioning context.
+    const host = (itemElement.querySelector<HTMLElement>('.item-popup') as HTMLElement) || itemElement;
+    if (window.getComputedStyle(host).position === 'static') host.style.position = 'relative';
+
     legacies.forEach(({mod, name}) => {
-      mod.classList.add(LEGACY_CLASS); // marks it hoverable (its detail is hidden until hover)
+      mod.classList.add(LEGACY_CLASS);
       if (counts[name.toLowerCase()] > 1) mod.classList.add(DUP_MOD_CLASS); // green the duplicates
-      mod.insertAdjacentElement('afterend', this.buildLegacyDetail(name, multiplier, increasedEffect));
+
+      const tip = this.buildLegacyTooltip(name, multiplier, increasedEffect);
+      host.appendChild(tip);
+      // pointer-events:none keeps the tooltip from stealing the hover, so moving down the list
+      // works without flicker — just show this Legacy's tooltip while its line is hovered.
+      mod.addEventListener('mouseenter', () => tip.classList.add(SHOW_CLASS));
+      mod.addEventListener('mouseleave', () => tip.classList.remove(SHOW_CLASS));
     });
 
     if (duplicateMod) {
-      // Green the duplicate-effect mod only when it's actually boosting something.
       if (duplicates > 0) (duplicateMod as HTMLElement).classList.add(ACTIVE_DUP_CLASS);
       (duplicateMod as HTMLElement).insertAdjacentElement(
         'afterend',
-        this.buildDuplicateDetail(duplicatePercent, duplicates, multiplier, increasedEffect, counts, displayNames)
+        this.buildDuplicateSummary(duplicatePercent, duplicates, multiplier, increasedEffect, counts, displayNames)
       );
     }
 
-    // The inline details push the mods down; re-anchor apply-stat-filter's Apply button + the
-    // copy bar (positioned absolutely from a now-stale layout) below everything.
+    // The always-visible summary adds a line; re-anchor apply-stat-filter's Apply button + copy bar.
     this.repositionApplyControls(itemElement);
   }
 
@@ -134,33 +144,40 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
     return el;
   }
 
-  private buildLegacyDetail(name: string, multiplier: number, increasedEffect: number): HTMLElement {
-    const detail = this.div(DETAIL_CLASS);
+  private span(className: string, text: string): HTMLElement {
+    const el = window.document.createElement('span');
+    el.className = className;
+    el.textContent = text;
+    return el;
+  }
+
+  private buildLegacyTooltip(name: string, multiplier: number, increasedEffect: number): HTMLElement {
+    const tip = this.div(TIP_CLASS);
+    tip.appendChild(this.div('bt-mb-tip-head', `Legacy of ${name}`));
+
     const effect = LEGACY_EFFECTS[name.toLowerCase()];
     if (!effect) {
-      detail.appendChild(this.div('bt-mb-detail-line', 'Effect not in the database yet.'));
-      return detail;
+      tip.appendChild(this.div('bt-mb-tip-line', 'Effect not in the database yet.'));
+      return tip;
     }
 
     const boosted = multiplier > 1.0001;
     effect.stats.forEach(([base, suffix]) => {
+      const line = this.div('bt-mb-tip-line');
       if (boosted) {
         const final = Math.floor(base * multiplier);
-        detail.appendChild(
-          this.div(
-            'bt-mb-detail-line',
-            `Base ${compactStat(base, suffix)} · +${increasedEffect}% increased effect = ${formatStat(final, suffix)}`
-          )
-        );
+        line.appendChild(this.span('bt-mb-tip-dim', `Base ${compactStat(base, suffix)} · +${increasedEffect}% increased effect = `));
+        line.appendChild(this.span('bt-mb-tip-final', formatStat(final, suffix)));
       } else {
-        detail.appendChild(this.div('bt-mb-detail-line', formatStat(base, suffix)));
+        line.appendChild(this.span('bt-mb-tip-final', formatStat(base, suffix)));
       }
+      tip.appendChild(line);
     });
-    if (effect.note) detail.appendChild(this.div('bt-mb-detail-line', effect.note));
-    return detail;
+    if (effect.note) tip.appendChild(this.div('bt-mb-tip-note', effect.note));
+    return tip;
   }
 
-  private buildDuplicateDetail(
+  private buildDuplicateSummary(
     percent: number,
     duplicates: number,
     multiplier: number,
@@ -168,22 +185,22 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
     counts: Record<string, number>,
     displayNames: Record<string, string>
   ): HTMLElement {
-    const detail = this.div(SUMMARY_CLASS);
+    const summary = this.div(SUMMARY_CLASS);
     if (duplicates <= 0) {
-      detail.appendChild(this.div('bt-mb-detail-line', 'No duplicate Legacies → ×1.00 (no bonus).'));
-      return detail;
+      summary.appendChild(this.div('bt-mb-summary-line', 'No duplicate Legacies → ×1.00 (no bonus).'));
+      return summary;
     }
     const dupList = Object.keys(counts)
       .filter((key) => counts[key] > 1)
       .map((key) => `${counts[key]}× ${displayNames[key] || titleCase(key)}`)
       .join(', ');
-    detail.appendChild(
+    summary.appendChild(
       this.div(
-        'bt-mb-detail-line',
+        'bt-mb-summary-line',
         `${duplicates} duplicate${duplicates > 1 ? 's' : ''} (${dupList}) × ${percent}% = +${increasedEffect}% increased effect → all Mage's Legacies ×${multiplier.toFixed(2)}`
       )
     );
-    return detail;
+    return summary;
   }
 
   private repositionApplyControls(root: HTMLElement): void {
@@ -191,8 +208,8 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
     const container = button?.parentElement as HTMLElement | null;
     if (!button || !container) return;
 
-    // Per-Legacy details are collapsed by default (0 height), so they don't affect the resting
-    // layout — only the mods + the always-visible summary do.
+    // Tooltips are absolutely positioned (no layout impact); only the mods + the always-visible
+    // summary set the resting height.
     const containerTop = container.getBoundingClientRect().top;
     let maxBottom = 0;
     container.querySelectorAll<HTMLElement>(`.item-mod, .${SUMMARY_CLASS}`).forEach((el) => {

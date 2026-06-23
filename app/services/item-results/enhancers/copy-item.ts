@@ -22,7 +22,7 @@ const APPLY_BUTTON_SELECTOR = '.bt-apply-stat-filter-button';
 // Controls this extension injects into the item — excluded from the copied text so
 // "Apply"/"Copy"/min-max never leak into the PoB paste.
 const INJECTED_SELECTOR =
-  '.bt-apply-stat-filter, .bt-apply-stat-filter-button, .bt-copy-item-button, .bt-mb-detail, .bt-mb-summary';
+  '.bt-apply-stat-filter, .bt-apply-stat-filter-button, .bt-copy-item-button, .bt-mb-tip, .bt-mb-summary';
 
 // PoB-importable art categories: the path segment right after "2DItems/" in the
 // decoded icon path (e.g. "2DItems/Weapons/...", "2DItems/Jewels/..."). Excludes

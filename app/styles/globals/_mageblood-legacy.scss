@@ -1,11 +1,11 @@
 // Mageblood "Legacy of X" mods don't print their effect on the trade card. mageblood-legacy
-// adds, under each Legacy, an effect detail (.bt-mb-detail, orange) that is HIDDEN by default and
-// slides in on hover; under the duplicate-effect mod it adds an always-visible maths summary
-// (.bt-mb-summary, orange). Duplicated Legacy lines (.bt-mb-dup-mod) and the active duplicate
-// mod (.bt-mb-active-dup) are highlighted green. Both detail/summary are excluded from
-// Copy-for-PoB (copy-item hides them); CoE only reads the mod value spans, so it's unaffected.
+// reveals each Legacy's effect in a floating tooltip centred over the item card on hover
+// (.bt-mb-tip — absolute + pointer-events:none, so the mod lines never move), keeps an
+// always-visible duplicate-maths summary under the dup mod (.bt-mb-summary), and greens the
+// duplicated Legacies (.bt-mb-dup-mod) + the active duplicate mod (.bt-mb-active-dup). The tooltip
+// and summary are excluded from Copy-for-PoB (copy-item hides them); CoE only reads value spans.
 
-// Legacy mod: signal it's hoverable (its effect detail is revealed on hover).
+// Legacy mod: signal it's hoverable.
 .bt-mb-legacy {
   cursor: help;
 
@@ -14,27 +14,63 @@
   }
 }
 
-// Per-Legacy effect detail — collapsed by default, slides + fades in on hover (of the mod or the
-// detail itself, so it stays open while the cursor moves onto it).
-.bt-mb-detail {
-  max-height: 0;
-  margin: 0;
-  padding-left: 16px;
-  overflow: hidden;
+// Floating effect tooltip — centred over the item card, fades + scales in. Never affects layout
+// and never blocks hover (pointer-events:none), so hovering down the Legacy list is rock-steady.
+.bt-mb-tip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 50;
+  min-width: 244px;
+  max-width: 380px;
+  padding: 12px 18px 13px;
+  background: linear-gradient(180deg, rgba(26, 20, 11, 0.99), rgba(10, 8, 5, 0.99));
+  border: 1px solid #7a6638;
+  border-radius: 8px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(232, 200, 115, 0.06);
+  text-align: center;
   opacity: 0;
-  transform: translateY(-4px);
-  color: #ef9f43;
-  font-size: 12px;
-  line-height: 1.5;
-  transition: max-height 0.28s ease, opacity 0.22s ease, margin 0.28s ease, transform 0.22s ease;
+  transform: translate(-50%, -50%) scale(0.94);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
 
-.bt-mb-legacy:hover + .bt-mb-detail,
-.bt-mb-detail:hover {
-  max-height: 200px;
-  margin: 2px 0 9px;
+.bt-mb-tip.bt-mb-show {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.bt-mb-tip-head {
+  margin-bottom: 9px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(122, 102, 56, 0.5);
+  color: #e8c873;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.bt-mb-tip-line {
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #cfc6ad;
+}
+
+.bt-mb-tip-dim {
+  color: #9c916a;
+}
+
+// The final, after-multiplier value — the number that matters, in orange.
+.bt-mb-tip-final {
+  color: #ef9f43;
+  font-weight: 600;
+}
+
+.bt-mb-tip-note {
+  margin-top: 4px;
+  color: #b7ad8c;
+  font-size: 12px;
+  font-style: italic;
 }
 
 // Always-visible duplicate-maths summary under the "increased effect per duplicate" mod.
@@ -46,7 +82,7 @@
   line-height: 1.5;
 }
 
-.bt-mb-detail-line {
+.bt-mb-summary-line {
   color: #ef9f43;
 }
 
