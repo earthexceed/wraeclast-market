@@ -108,7 +108,10 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
 
     legacies.forEach(({mod, name}) => {
       mod.classList.add(LEGACY_CLASS);
-      this.attachTooltip(mod, this.buildLegacyTooltip(name, counts[name.toLowerCase()], multiplier, duplicates));
+      this.attachTooltip(
+        mod,
+        this.buildLegacyTooltip(name, counts[name.toLowerCase()], multiplier, duplicates, Boolean(duplicateMod))
+      );
     });
 
     if (duplicateMod) {
@@ -133,7 +136,13 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
     return el;
   }
 
-  private buildLegacyTooltip(name: string, count: number, multiplier: number, duplicates: number): HTMLElement {
+  private buildLegacyTooltip(
+    name: string,
+    count: number,
+    multiplier: number,
+    duplicates: number,
+    hasDuplicateMod: boolean
+  ): HTMLElement {
     const tip = this.div(TIP_CLASS);
 
     const head = this.div('bt-mb-tip-head');
@@ -171,6 +180,10 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
             .join(' / ')}`
         )
       );
+    } else if (hasDuplicateMod) {
+      // The belt has the "increased effect per duplicate" mod but no duplicate Legacies, so the
+      // multiplier is ×1.00 — spell that out so it's clear why the value is just the base.
+      tip.appendChild(this.div('bt-mb-tip-foot', 'No duplicate Legacies on this belt → ×1.00 (no bonus).'));
     }
     if (count > 1) {
       tip.appendChild(
