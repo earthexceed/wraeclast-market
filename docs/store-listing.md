@@ -19,7 +19,7 @@ FEATURES
 
 • Apply stat filters from results — inline min/max boxes next to every mod. Tick the mods you care about, hit Apply, and your search re-runs in place (no page reload) — fast and light on the trade site's rate limit. Reads each mod's exact stat id, so local/global and fractured/desecrated/crafted variants are matched correctly, and mods with no number (e.g. "Cannot be Ignited") are filterable by presence. Untick a mod to drop its filter; a hide/show eye tucks the controls away when they cover a long mod.
 
-• Quality simulator (rings & amulets) — pick a quality category (Defence, Fire, Attribute, …) and a quality %, and the affected mods rescale live in green so you can see the item at any quality. Quick-pick presets sized to the real caps: amulet up to 40%, ring up to 60% (Breach Ring + Essence of the Breach).
+• Quality simulator (rings & amulets) — pick a quality category and a quality %, and the affected mods rescale live in green so you can see the item at any quality. On PoE 2 it uses the Breach-catalyst categories with presets sized to the real caps (amulet up to 40%, ring up to 60% via a Breach Ring + Essence of the Breach); on PoE 1 it uses the Catalyst groups (Attack, Life and Mana, Resistance, …) with the 20% cap.
 
 • Quality projection (weapons & armour) — see weapon Physical Damage and armour defences projected to 20% quality for at-a-glance comparison.
 
@@ -27,7 +27,7 @@ FEATURES
 
 • Copy for Craft of Exile — one click copies a listing in Craft of Exile's import format; paste into craftofexile.com (PoE2) to load the item's base with its mods matched, ready to plan crafts.
 
-• Equivalent pricing — see each listing's price converted via poe.ninja's currency-exchange rates, right on the results.
+• Equivalent pricing — see each listing's price converted via poe.ninja's currency-exchange rates, right on the results (PoE 1 prices shown in Divine and Chaos).
 
 • Highlight searched mods — instantly spot the mods you searched for on each result.
 

@@ -23,8 +23,8 @@ In the meantime, you can continue to use version [1.3.2 on Firefox](https://addo
 - **Apply stat filters from results** — inline min/max inputs + one-click Apply that re-runs your search in place (no page reload, so it's fast and light on the trade site's rate limits); untick a mod to drop its filter
 - **Copy for PoB** — one-click export an item to import into Path of Building
 - **Copy for CoE** — one-click export an item to import into [Craft of Exile](https://www.craftofexile.com/) (PoE 2)
-- **Quality simulator** (PoE 2) — preview how catalyst quality scales ring & amulet mods, live
-- Equivalent pricing across currencies (powered by [poe.ninja](https://poe.ninja/))
+- **Quality simulator** (PoE 1 & 2) — preview how catalyst quality scales ring & amulet mods, live (PoE 2 Breach catalysts up to 40/60%; PoE 1 catalysts up to 20%)
+- Equivalent pricing across currencies (powered by [poe.ninja](https://poe.ninja/)) — PoE 1 prices shown in Divine & Chaos
 - Bookmarks manager — organize searches into folders with class / currency icons
 - Pin items (with quick-jump) & search history
 - Searched mods highlighting
