@@ -64,7 +64,10 @@ export default class ItemElement extends Service {
   }
 
   private ilvl(itemElement: HTMLDivElement) {
-    const ilvlElement = itemElement.querySelector('.itemLevel');
+    // Modern trade DOM (both PoE1 and PoE2) tags the item level as `[data-field="ilvl"]`
+    // ("Item Level: 83"); the legacy `.itemLevel` class is kept as a fallback.
+    const ilvlElement =
+      itemElement.querySelector('.item-property [data-field="ilvl"]') || itemElement.querySelector('.itemLevel');
     const ilvlMatch = ilvlElement?.textContent?.match(/(\d+)/);
     if (!ilvlMatch) return null;
 

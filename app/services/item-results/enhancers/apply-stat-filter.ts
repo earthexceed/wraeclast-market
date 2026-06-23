@@ -43,7 +43,6 @@ const ROLL_RANGE_PATTERN = /\d+(?:\.\d+)?\s*[—–]\s*\d+(?:\.\d+)?/;
 // rolled prefix/suffix affix (vs. a fixed special mod like "[1] …every 4 seconds",
 // which has no such prefix), so treat a tiered + numeric mod as scalable too.
 const TIER_PREFIX_PATTERN = /^[PS]\d/;
-const TRADE_SEARCH_API = '/api/trade2/search/poe2';
 // "magnifying-glass" icon by Lorc — game-icons.net, CC BY 3.0. Foreground path only.
 const MAGNIFIER_ICON_PATH =
   'M333.78 20.188c-39.97 0-79.96 15.212-110.405 45.656-58.667 58.667-60.796 152.72-6.406 213.97l-15.782 15.748 13.25 13.25 15.75-15.78c61.248 54.39 155.3 52.26 213.968-6.407 60.887-60.886 60.888-159.894 0-220.78C413.713 35.4 373.753 20.187 333.78 20.187zm0 18.562c35.15 0 70.285 13.44 97.158 40.313 53.745 53.745 53.744 140.6 0 194.343-51.526 51.526-133.46 53.643-187.5 6.375l.218-.217c-2.35-2.05-4.668-4.17-6.906-6.407-2.207-2.206-4.288-4.496-6.313-6.812l-.218.22c-47.27-54.04-45.152-135.976 6.374-187.502C263.467 52.19 298.63 38.75 333.78 38.75zm0 18.813c-30.31 0-60.63 11.6-83.81 34.78-46.362 46.362-46.362 121.234 0 167.594 10.14 10.142 21.632 18.077 33.905 23.782-24.91-19.087-40.97-49.133-40.97-82.94 0-15.323 3.292-29.888 9.22-43-4.165 20.485.44 40.88 14.47 54.907 24.583 24.585 68.744 20.318 98.624-9.562 29.88-29.88 34.146-74.04 9.56-98.625-2.375-2.376-4.943-4.473-7.655-6.313 45.13 8.648 79.954 46.345 84.25 92.876 4.44-35.07-6.82-71.726-33.813-98.72-23.18-23.18-53.47-34.78-83.78-34.78zM176.907 297.688L42.094 432.5l34.562 34.563L211.47 332.25l-34.564-34.563zM40 456.813L24 472.78 37.22 486l15.968-16L40 456.812z';
@@ -140,6 +139,17 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
   flashMessages: FlashMessages;
 
   slug = 'apply-stat-filter';
+
+  // The navigation-fallback endpoints differ per game: PoE1 searches under /api/trade/search
+  // and /trade/search, PoE2 under /api/trade2/search/poe2 and /trade2/search/poe2. (The
+  // preferred in-place path drives the page's own Search button, so it's version-agnostic.)
+  private get searchApiBase(): string {
+    return this.tradeLocation.version === '2' ? '/api/trade2/search/poe2' : '/api/trade/search';
+  }
+
+  private get searchUiBase(): string {
+    return this.tradeLocation.version === '2' ? '/trade2/search/poe2' : '/trade/search';
+  }
 
   // Active filters in the current search, keyed by stat id — used to pre-fill the
   // inputs and pre-check the enable box for mods already being filtered.
@@ -536,7 +546,7 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     let searchId: string | null = null;
     let rateLimited = false;
     try {
-      const response = await window.fetch(`${TRADE_SEARCH_API}/${encodedLeague}`, {
+      const response = await window.fetch(`${this.searchApiBase}/${encodedLeague}`, {
         method: 'POST',
         headers: {'content-type': 'application/json'},
         credentials: 'include',
@@ -563,7 +573,7 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     // search id: the site rewrites the id on load, so a single "pending" entry is used.
     this.storeAppliedFilters(query);
 
-    window.location.href = `/trade2/search/poe2/${encodedLeague}/${searchId}`;
+    window.location.href = `${this.searchUiBase}/${encodedLeague}/${searchId}`;
     return true;
   }
 
@@ -627,7 +637,7 @@ export default class ApplyStatFilter extends Service implements ItemResultsEnhan
     if (!slug) return fresh();
     try {
       const encodedLeague = encodeURIComponent(poe2LeagueName(this.tradeLocation.league || ''));
-      const response = await window.fetch(`${TRADE_SEARCH_API}/${encodedLeague}/${slug}`, {credentials: 'include'});
+      const response = await window.fetch(`${this.searchApiBase}/${encodedLeague}/${slug}`, {credentials: 'include'});
       if (response.status === 429) return null;
       if (response.ok) {
         const current = ((await response.json()) as {query?: TradeQuery}).query;
