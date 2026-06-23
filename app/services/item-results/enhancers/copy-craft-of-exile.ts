@@ -102,14 +102,28 @@ export default class CopyCraftOfExile extends Service implements ItemResultsEnha
       .filter(Boolean);
     if (headerLines.length === 0) return null;
 
-    const modTexts = (selector: string): string[] =>
-      Array.from(popup.querySelectorAll<HTMLElement>(selector))
-        .map((el) => (el.textContent || '').replace(/\s+/g, ' ').trim())
+    // Each mod line must be preceded by a "{ <Type> Modifier }" annotation for Craft of Exile's
+    // importer to recognise + match it — verified live: without it CoE loads the base but zero
+    // mods (the "advanced"/Ctrl+Alt+C item format CoE asks for). CoE doesn't validate the type,
+    // but we set Prefix/Suffix (from the affix's P#/S# tier label) / Implicit where known so the
+    // imported item reads correctly. Plain rolled values are enough — no value ranges needed.
+    const annotatedMods = (rowSelector: string, fixedType: string | null): string[] =>
+      Array.from(popup.querySelectorAll<HTMLElement>(rowSelector))
+        .map((row) => {
+          const valueSpan = row.querySelector<HTMLElement>('[data-field^="stat."]');
+          const text = valueSpan ? (valueSpan.textContent || '').replace(/\s+/g, ' ').trim() : '';
+          if (!text) return '';
+          let type = fixedType;
+          if (!type) {
+            const label = (row.querySelector<HTMLElement>('.lc.l')?.textContent || '').trim();
+            type = label.charAt(0).toUpperCase() === 'S' ? 'Suffix' : 'Prefix';
+          }
+          return `{ ${type} Modifier }\n${text}`;
+        })
         .filter(Boolean);
 
-    const explicits = modTexts('.item-mod--explicit [data-field^="stat."]');
-    const implicits = modTexts('.item-mod--implicit [data-field^="stat."]');
-    const enchants = modTexts('.item-mod--enchant [data-field^="stat."]');
+    const explicits = annotatedMods('.item-mod--explicit', null);
+    const implicits = annotatedMods('.item-mod--implicit', 'Implicit');
 
     // 2 header lines = a named item (name + base): treat as Rare (the common, craftable case).
     // 1 line is a bare base (Normal) — or a Magic name; either way the line is the base to match.
@@ -130,8 +144,7 @@ export default class CopyCraftOfExile extends Service implements ItemResultsEnha
     sections.push([`Rarity: ${rarity}`, name, base].filter(Boolean));
     if (quality) sections.push([`Quality: +${quality}% (augmented)`]);
     if (itemLevel) sections.push([`Item Level: ${itemLevel}`]);
-    if (enchants.length) sections.push(enchants.map((m) => `${m} (enchant)`));
-    if (implicits.length) sections.push(implicits.map((m) => `${m} (implicit)`));
+    if (implicits.length) sections.push(implicits);
     if (explicits.length) sections.push(explicits);
     if (corrupted) sections.push(['Corrupted']);
 
