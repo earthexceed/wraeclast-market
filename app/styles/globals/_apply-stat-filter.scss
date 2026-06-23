@@ -229,16 +229,17 @@
   &:hover svg {
     fill: #e8c873;
   }
-
-  // Collapsed state: dim the eye so it reads as "filters hidden".
-  &.bt-is-collapsed svg {
-    fill: #6b6147;
-  }
 }
 
-// When collapsed, hide every injected control + the Apply button (but not the toggle),
-// revealing the full mod text underneath.
-.bt-filters-collapsed .bt-apply-stat-filter,
-.bt-filters-collapsed .bt-apply-stat-filter-button {
+// Global collapse: clicking any row's eye toggles `bt-filters-collapsed-all` on <body>,
+// hiding every injected control + the Apply button across ALL results (but not the eyes),
+// revealing the full mod text underneath. New rows inherit the state via this same rule.
+body.bt-filters-collapsed-all .bt-apply-stat-filter,
+body.bt-filters-collapsed-all .bt-apply-stat-filter-button {
   display: none;
+}
+
+// Every eye dims to reflect the shared "filters hidden" state.
+body.bt-filters-collapsed-all .bt-filter-toggle svg {
+  fill: #6b6147;
 }

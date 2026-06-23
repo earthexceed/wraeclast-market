@@ -25,7 +25,7 @@ const INJECTED_CONTROL_SELECTOR = [
 // Classes we add to existing card elements (not standalone nodes): drop the class, keep the
 // element — otherwise the clone keeps control-related padding/collapse styling with nothing
 // to justify it.
-const INJECTED_MARKER_CLASSES = ['bt-has-stat-filter', 'bt-filters-collapsed', 'bt-applied-pending'];
+const INJECTED_MARKER_CLASSES = ['bt-has-stat-filter', 'bt-applied-pending'];
 
 export default class Pinnable extends Service implements ItemResultsEnhancerService {
   @service('item-results')
