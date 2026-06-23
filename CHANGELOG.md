@@ -40,6 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ### Fixed
 
 - The Copy-for-PoB button no longer floats over the mods on rings & amulets.
+- **Copy for PoB / CoE now appear on PoE 2 off-hand items** (Talismans, Foci, …) — they were
+  skipped because PoE 2 nests those under a different art category.
 - Apply, Copy for PoB, mod highlighting and the rest already worked on PoE 1 (shared layout);
   tidied Apply's fallback and the item-level read so the PoE 1 max-sockets warning works again.
 

@@ -25,7 +25,9 @@ const INJECTED_SELECTOR = '.bt-apply-stat-filter, .bt-apply-stat-filter-button, 
 
 // PoB-importable art categories: the path segment right after "2DItems/" in the
 // decoded icon path (e.g. "2DItems/Weapons/...", "2DItems/Jewels/..."). Excludes
-// Currency / Maps / Gems / DivinationCards etc.
+// Currency / Maps / Gems / DivinationCards etc. NOTE: PoE2 nests off-hand gear
+// (Talismans, Foci, Quivers, …) under "2DItems/Offhand/…", so the decoded category
+// is "Offhand" — include it so those equippable items get the copy buttons too.
 const POB_IMPORTABLE_CATEGORIES = [
   'Weapons',
   'Armours',
@@ -36,6 +38,7 @@ const POB_IMPORTABLE_CATEGORIES = [
   'Flasks',
   'Charms',
   'Quivers',
+  'Offhand',
 ];
 
 // "papers" icon by Lorc — game-icons.net, CC BY 3.0. Foreground path only (the
