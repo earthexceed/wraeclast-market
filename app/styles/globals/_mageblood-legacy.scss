@@ -1,13 +1,45 @@
 // Mageblood "Legacy of X" mods don't print their effect on the trade card. mageblood-legacy
-// prints each effect inline on the line below the mod (.bt-mb-detail, orange), greens the
-// duplicated Legacy lines (.bt-mb-dup-mod) and the duplicate-effect mod when it's active
-// (.bt-mb-active-dup). The detail lines are excluded from Copy-for-PoB (copy-item hides them)
-// and aren't read by Copy-for-CoE (which only reads the mod value spans).
+// adds, under each Legacy, an effect detail (.bt-mb-detail, orange) that is HIDDEN by default and
+// slides in on hover; under the duplicate-effect mod it adds an always-visible maths summary
+// (.bt-mb-summary, orange). Duplicated Legacy lines (.bt-mb-dup-mod) and the active duplicate
+// mod (.bt-mb-active-dup) are highlighted green. Both detail/summary are excluded from
+// Copy-for-PoB (copy-item hides them); CoE only reads the mod value spans, so it's unaffected.
 
-// Effect detail printed under each Legacy (and the duplicate-effect mod), in orange so it
-// reads as our annotation, with a gap below so it visually belongs to the mod above it.
+// Legacy mod: signal it's hoverable (its effect detail is revealed on hover).
+.bt-mb-legacy {
+  cursor: help;
+
+  [data-field^='stat.'] {
+    border-bottom: 1px dotted rgba(232, 200, 115, 0.35);
+  }
+}
+
+// Per-Legacy effect detail — collapsed by default, slides + fades in on hover (of the mod or the
+// detail itself, so it stays open while the cursor moves onto it).
 .bt-mb-detail {
-  margin: 1px 0 9px;
+  max-height: 0;
+  margin: 0;
+  padding-left: 16px;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  color: #ef9f43;
+  font-size: 12px;
+  line-height: 1.5;
+  transition: max-height 0.28s ease, opacity 0.22s ease, margin 0.28s ease, transform 0.22s ease;
+}
+
+.bt-mb-legacy:hover + .bt-mb-detail,
+.bt-mb-detail:hover {
+  max-height: 200px;
+  margin: 2px 0 9px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+// Always-visible duplicate-maths summary under the "increased effect per duplicate" mod.
+.bt-mb-summary {
+  margin: 3px 0 9px;
   padding-left: 16px;
   color: #ef9f43;
   font-size: 12px;
@@ -24,8 +56,7 @@
   color: #6cc46c !important;
 }
 
-// The "All Mage's Legacies have …% increased effect per duplicate" mod, when there IS a
-// duplicate (so it's actually doing something) — highlight green to show it's active.
+// The duplicate-effect mod, when there IS a duplicate (it's actually doing something) — green.
 .bt-mb-active-dup [data-field^='stat.'],
 .bt-mb-active-dup [data-field^='stat.'] * {
   color: #6cc46c !important;

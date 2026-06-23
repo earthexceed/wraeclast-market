@@ -54,7 +54,9 @@ const LEGACY_PATTERN = /^Legacy of (.+)$/;
 // "All Mage's Legacies have 37% increased effect per duplicate Mage's Legacy you have".
 const DUPLICATE_PATTERN = /Mage'?s Legacies have (\d+)% increased effect per duplicate/i;
 
-const DETAIL_CLASS = 'bt-mb-detail';
+const LEGACY_CLASS = 'bt-mb-legacy'; // every Legacy mod (its effect detail is hover-revealed)
+const DETAIL_CLASS = 'bt-mb-detail'; // per-Legacy effect detail — hidden, slides in on hover
+const SUMMARY_CLASS = 'bt-mb-summary'; // duplicate-maths summary under the dup mod — always visible
 const DUP_MOD_CLASS = 'bt-mb-dup-mod'; // a Legacy that appears 2+ times → highlighted green
 const ACTIVE_DUP_CLASS = 'bt-mb-active-dup'; // the duplicate-effect mod, when it's actually doing something
 
@@ -106,6 +108,7 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
     const increasedEffect = Math.round((multiplier - 1) * 100); // total "increased effect" %
 
     legacies.forEach(({mod, name}) => {
+      mod.classList.add(LEGACY_CLASS); // marks it hoverable (its detail is hidden until hover)
       if (counts[name.toLowerCase()] > 1) mod.classList.add(DUP_MOD_CLASS); // green the duplicates
       mod.insertAdjacentElement('afterend', this.buildLegacyDetail(name, multiplier, increasedEffect));
     });
@@ -165,7 +168,7 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
     counts: Record<string, number>,
     displayNames: Record<string, string>
   ): HTMLElement {
-    const detail = this.div(DETAIL_CLASS);
+    const detail = this.div(SUMMARY_CLASS);
     if (duplicates <= 0) {
       detail.appendChild(this.div('bt-mb-detail-line', 'No duplicate Legacies → ×1.00 (no bonus).'));
       return detail;
@@ -188,9 +191,11 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
     const container = button?.parentElement as HTMLElement | null;
     if (!button || !container) return;
 
+    // Per-Legacy details are collapsed by default (0 height), so they don't affect the resting
+    // layout — only the mods + the always-visible summary do.
     const containerTop = container.getBoundingClientRect().top;
     let maxBottom = 0;
-    container.querySelectorAll<HTMLElement>(`.item-mod, .${DETAIL_CLASS}`).forEach((el) => {
+    container.querySelectorAll<HTMLElement>(`.item-mod, .${SUMMARY_CLASS}`).forEach((el) => {
       maxBottom = Math.max(maxBottom, el.getBoundingClientRect().bottom - containerTop);
     });
     if (maxBottom <= 0) return; // no layout (e.g. tests) — leave the original position

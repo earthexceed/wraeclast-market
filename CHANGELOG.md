@@ -20,14 +20,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   Life and Mana, Defence, Resistance, Elemental, Attribute, Physical and Chaos, Critical,
   Speed) and a quality %, and the matched mods rescale live in green. Sized to the PoE 1 cap
   (**20%**).
-- **Mageblood Legacy effects** (PoE 2) — the trade card only prints "Legacy of X", so the effect
-  is now printed inline (in orange) on the line below each Legacy. When the belt has the corrupted
-  **"increased effect per duplicate"** mod, that line shows the maths (matching Path of Building):
-  base value · +N% increased effect · = final — e.g. with 1 duplicate at +27%/dup, Legacy of
-  Granite reads "Base +2000 · +27% increased effect = +2540 to Armour". The multiplier applies to
-  **every** Legacy (not just the duplicated ones), and duplicate copies don't stack their value —
-  the extra copy only raises the multiplier. Duplicated Legacies and the active duplicate-effect
-  mod are highlighted green.
+- **Mageblood Legacy effects** (PoE 2) — the trade card only prints "Legacy of X", so each
+  Legacy's effect is now shown in orange — **hover a Legacy** and its detail slides in (kept
+  hidden by default so the card stays compact). When the belt has the corrupted **"increased
+  effect per duplicate"** mod, the detail shows the maths (matching Path of Building): base value ·
+  +N% increased effect · = final — e.g. with 1 duplicate at +27%/dup, Legacy of Granite reads
+  "Base +2000 · +27% increased effect = +2540 to Armour". The multiplier applies to **every**
+  Legacy (not just the duplicated ones), and duplicate copies don't stack their value — the extra
+  copy only raises the multiplier. The duplicate-maths summary stays visible under the mod, and
+  duplicated Legacies + the active duplicate-effect mod are highlighted green.
 
 ### Changed
 
