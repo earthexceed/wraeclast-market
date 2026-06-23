@@ -1,15 +1,23 @@
 # Wraeclast Market — Session Handoff
 
-Last updated: 2026-06-20
+Last updated: 2026-06-23
 
-PoE & PoE2 fork of **Better Trading** (Chrome MV3 extension enhancing pathofexile.com **trade2**). Code in `better-trading-poe2/`. Rebranded **Wraeclast Market**. Now at **v2.1.0**.
+PoE & PoE2 fork of **Better Trading** (Chrome MV3 extension enhancing pathofexile.com **trade** + **trade2**). Code in `better-trading-poe2/`. Rebranded **Wraeclast Market**. Released **v2.2.0**; master now carries **unreleased PoE1-support work** (not yet versioned/zipped).
 
 ## Current state (TL;DR)
 
-- On branch **`master`**, working tree clean. **master is local-ahead of `origin/master` by ~42 commits — DO NOT push unless the user explicitly asks** (it publishes to `earthexceed/wraeclast-market`). This is normal here.
-- **Store-ready build:** `C:\Project\BetterTradingPOE2\wraeclast-market-2.1.0.zip` (production, manifest at zip root). Re-zip after any change: prod build → scaffold prod → Compress-Archive `dist/staged/*` (see Build below).
+- On branch **`master`**, working tree clean. **master is local-ahead of `origin/master` — DO NOT push unless the user explicitly asks** (it publishes to `earthexceed/wraeclast-market`). This is normal here.
+- **Last shipped store zip:** `C:\Project\BetterTradingPOE2\wraeclast-market-2.2.0.zip`. PoE1-support changes are committed but NOT yet versioned/changelogged/zipped — bump to 2.3.0 + update CHANGELOG/changelog.html/store-listing/README when the user wants to ship.
 - **Web Store listing text:** `docs/store-listing.md` (title / summary / description).
 - Tests can't run on Node 24 (`ember exam`); verify via `tsc --noEmit` (only 2 known `@types` ChaiPlugin errors OK) + `ember build` + live browser.
+
+## PoE1 support (2026-06-23 session — committed, awaiting reload-test)
+
+GGG migrated PoE1 `/trade` to PoE2's modern DOM, so most enhancers already worked on PoE1; the broken ones were fixed (see [[reference_poe1-trade-dom-and-poeninja]]):
+- **equivalent-pricings**: poe.ninja retired the legacy PoE1 `currencyoverview` API; switched to the unified `/poe1/api/economy/exchange/current/overview` (same payload as PoE2 → reuses `parsePoe2Ratios`). Background query `poe-ninja-poe1`. PoE1 refs = Divine + Chaos.
+- **quality-simulator**: detected jewellery by icon art path (`app/utilities/icon-category.ts`) because PoE1's first `.item-property` is "Item Level", not the base type. Added PoE1 catalyst categories (10 groups) + 20% cap; version-aware via `trade-location.version`.
+- **apply-stat-filter**: navigation/fetch fallback made version-aware (`/api/trade/search` on PoE1); in-place path already worked. **item-element** ilvl now reads `[data-field="ilvl"]` (restores PoE1 max-sockets input).
+- Verified each piece by running the new logic in-page against the 3 live PoE1 test searches (Mirage). **Still pending: user reloads the unpacked extension + refreshes a `/trade` tab to confirm end-to-end** (the Chrome MCP can't reload the extension).
 
 ## What v2.1.0 added (this session)
 
@@ -35,7 +43,8 @@ PoE & PoE2 fork of **Better Trading** (Chrome MV3 extension enhancing pathofexil
 
 ## Pending / next
 
-1. User to **reload extension + refresh the trade tab** and confirm: Apply reads from the page (no GET) and no longer trips the rate limit; quality simulator, changelog tab, eye toggle all work.
-2. **Upload `wraeclast-market-2.1.0.zip`** to the Web Store + paste `docs/store-listing.md` (user does this; bump the version first if 2.1.0 is ever published).
+1. **Reload the unpacked extension (chrome://extensions) + refresh a PoE1 `/trade` tab** and confirm live: equivalent pricing pills (Divine/Chaos) appear, quality simulator box shows on PoE1 rings/amulets with the 10 catalyst categories + 20% presets, Apply/Copy still work.
+2. **When ready to ship the PoE1 work:** bump 2.2.0 → 2.3.0, update `CHANGELOG.md` + `extension/changelog.html` + `docs/store-listing.md` + `README.md` (drop the "(PoE 2)" qualifier on quality simulator; note PoE1 pricing), rebuild the prod zip.
 3. **Push to GitHub only when the user asks.**
-4. Open question still only assumed-not-verified: whether trade2's *displayed* jewellery mod values already include existing quality (only matters when adjusting % on an item that already has quality; the no-quality case is exact). Documented in the quality-simulator spec.
+4. Not live-verified this session (low risk — shared modern DOM): quality-projection on a PoE1 weapon/armour, and the PoE1 max-sockets warning on an armour-with-sockets page. Copy-for-CoE produces output on PoE1 but its CoE-PoE1 import wasn't tested.
+5. Open question (pre-existing): whether the trade site's *displayed* jewellery mod values already include existing quality (only matters when adjusting % on an item that already has quality; the no-quality case is exact).
