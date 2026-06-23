@@ -4,7 +4,8 @@
 // hover reads clearly without being harsh. `.btn.<class>` keeps specificity above the
 // site's `.btn-default:hover`. The icon uses currentColor, so it brightens too.
 .btn.bt-apply-stat-filter-button,
-.btn.bt-copy-item-button {
+.btn.bt-copy-item-button,
+.btn.bt-copy-coe-button {
   transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
 
   &:hover,

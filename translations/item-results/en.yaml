@@ -16,3 +16,7 @@ item-results:
     button: Copy for PoB
     copied: ✓ Copied
     error: Could not copy this item.
+  copy-craft-of-exile:
+    button: Copy for CoE
+    copied: ✓ Copied
+    error: Could not copy this item.
