@@ -55,8 +55,7 @@ const LEGACY_PATTERN = /^Legacy of (.+)$/;
 const DUPLICATE_PATTERN = /Mage'?s Legacies have (\d+)% increased effect per duplicate/i;
 
 const LEGACY_CLASS = 'bt-mb-legacy'; // every Legacy mod (its effect tooltip shows on hover)
-const TIP_CLASS = 'bt-mb-tip'; // floating effect tooltip, centred over the card
-const SHOW_CLASS = 'bt-mb-show'; // toggled on the tooltip while its Legacy is hovered
+const TIP_CLASS = 'bt-mb-tip'; // effect tooltip — sits in the gutter beside the mod on hover (CSS)
 const SUMMARY_CLASS = 'bt-mb-summary'; // duplicate-maths summary under the dup mod — always visible
 const DUP_MOD_CLASS = 'bt-mb-dup-mod'; // a Legacy that appears 2+ times → highlighted green
 const ACTIVE_DUP_CLASS = 'bt-mb-active-dup'; // the duplicate-effect mod, when it's actually doing something
@@ -108,21 +107,13 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
     const multiplier = duplicateMod ? 1 + (duplicatePercent / 100) * duplicates : 1;
     const increasedEffect = Math.round((multiplier - 1) * 100); // total "increased effect" %
 
-    // The tooltips are centred over the item card (so they never shift the mod layout). Anchor
-    // them to the popup; the popup needs a positioning context.
-    const host = (itemElement.querySelector<HTMLElement>('.item-popup') as HTMLElement) || itemElement;
-    if (window.getComputedStyle(host).position === 'static') host.style.position = 'relative';
-
     legacies.forEach(({mod, name}) => {
       mod.classList.add(LEGACY_CLASS);
       if (counts[name.toLowerCase()] > 1) mod.classList.add(DUP_MOD_CLASS); // green the duplicates
-
-      const tip = this.buildLegacyTooltip(name, multiplier, increasedEffect);
-      host.appendChild(tip);
-      // pointer-events:none keeps the tooltip from stealing the hover, so moving down the list
-      // works without flicker — just show this Legacy's tooltip while its line is hovered.
-      mod.addEventListener('mouseenter', () => tip.classList.add(SHOW_CLASS));
-      mod.addEventListener('mouseleave', () => tip.classList.remove(SHOW_CLASS));
+      // The tooltip is a child of the mod (which is position:relative); CSS shows it on hover and
+      // parks it in the empty gutter to the RIGHT of the card, so it never covers the other mods
+      // and the mouse stays on the mod while reading it (no flicker, no layout shift).
+      mod.appendChild(this.buildLegacyTooltip(name, multiplier, increasedEffect));
     });
 
     if (duplicateMod) {
