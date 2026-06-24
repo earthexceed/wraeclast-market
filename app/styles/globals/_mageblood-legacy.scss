@@ -64,26 +64,29 @@
   letter-spacing: 0.3px;
 }
 
-.bt-mb-tip-line {
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: #cfc6ad;
+// Each stat is two lines: the small dim calc, then the prominent orange result.
+.bt-mb-tip-stat {
+  margin: 7px 0;
 }
 
-.bt-mb-tip-dim {
+.bt-mb-tip-calc {
   color: #9c916a;
+  font-size: 11.5px;
+  line-height: 1.4;
 }
 
-// The final, after-multiplier value — the number that matters, in orange.
+// The final, after-multiplier value — the number that matters, big + orange.
 .bt-mb-tip-final {
   color: #ef9f43;
+  font-size: 13px;
   font-weight: 600;
+  line-height: 1.45;
 }
 
 .bt-mb-tip-note {
-  margin-top: 4px;
+  margin-top: 6px;
   color: #b7ad8c;
-  font-size: 12px;
+  font-size: 11.5px;
   font-style: italic;
 }
 

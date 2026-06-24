@@ -148,34 +148,31 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
     return el;
   }
 
-  private span(className: string, text: string): HTMLElement {
-    const el = window.document.createElement('span');
-    el.className = className;
-    el.textContent = text;
-    return el;
-  }
-
   private buildLegacyTooltip(name: string, multiplier: number, increasedEffect: number): HTMLElement {
     const tip = this.div(TIP_CLASS);
     tip.appendChild(this.div('bt-mb-tip-head', `Legacy of ${name}`));
 
     const effect = LEGACY_EFFECTS[name.toLowerCase()];
     if (!effect) {
-      tip.appendChild(this.div('bt-mb-tip-line', 'Effect not in the database yet.'));
+      tip.appendChild(this.div('bt-mb-tip-final', 'Effect not in the database yet.'));
       return tip;
     }
 
+    // Each stat is two deliberate lines — a small dim "Base … · +N% increased effect =" then the
+    // final value, big + orange — so it never wraps mid-phrase in the narrow box beside the mod.
     const boosted = multiplier > 1.0001;
     effect.stats.forEach(([base, suffix]) => {
-      const line = this.div('bt-mb-tip-line');
+      const stat = this.div('bt-mb-tip-stat');
       if (boosted) {
         const final = Math.floor(base * multiplier);
-        line.appendChild(this.span('bt-mb-tip-dim', `Base ${compactStat(base, suffix)} · +${increasedEffect}% increased effect = `));
-        line.appendChild(this.span('bt-mb-tip-final', formatStat(final, suffix)));
+        stat.appendChild(
+          this.div('bt-mb-tip-calc', `Base ${compactStat(base, suffix)} · +${increasedEffect}% increased effect =`)
+        );
+        stat.appendChild(this.div('bt-mb-tip-final', formatStat(final, suffix)));
       } else {
-        line.appendChild(this.span('bt-mb-tip-final', formatStat(base, suffix)));
+        stat.appendChild(this.div('bt-mb-tip-final', formatStat(base, suffix)));
       }
-      tip.appendChild(line);
+      tip.appendChild(stat);
     });
     if (effect.note) tip.appendChild(this.div('bt-mb-tip-note', effect.note));
     return tip;
