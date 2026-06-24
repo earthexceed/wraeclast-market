@@ -7,7 +7,8 @@ PoE & PoE2 fork of **Better Trading** (Chrome MV3 extension enhancing pathofexil
 ## Current state (TL;DR)
 
 - On branch **`master`**, working tree clean. Pushed to `origin/master` (the user explicitly asked at the 2.3.0 release). Going forward, **push only when the user asks**.
-- **Store-ready build:** `C:\Project\BetterTradingPOE2\wraeclast-market-2.3.0.zip` (manifest 2.3.0, verified). CHANGELOG / changelog.html / store-listing / README all updated for 2.3.0. Re-zip after any change: prod build → scaffold prod → Compress-Archive `dist/staged/*` (see Build).
+- **Store-ready build:** `C:\Project\BetterTradingPOE2\wraeclast-market-2.3.0.zip` (manifest 2.3.0, verified, ~4.6 MB now it carries screenshots). CHANGELOG / changelog.html / store-listing / README all updated for 2.3.0. Re-zip after any change: prod build → scaffold prod → Compress-Archive `dist/staged/*` (see Build). **Gotcha: scaffolding `production` does NOT update `dist/dev` — run `scaffold-extension.js dev` too if testing static `extension/*` files (e.g. changelog.html, the shots) in the unpacked dev build.**
+- **Post-2.3.0-release tweaks (committed + pushed, after the release commit):** (1) README dropped the "Why not Firefox?" section; (2) the **About panel** no longer renders the inline markdown changelog — it has a **"What's New" button** that opens `changelog.html` via a background `open-changelog` message (the old `changelogs/*.md` + `MarkdownChangelog` component are now unused but left in place); (3) `extension/changelog.html` now embeds **4 feature screenshots** — `shot-mageblood.png`, `shot-quality-projection.png`, `shot-apply-filter.webp`, `shot-copy-pob-coe.webp` (+ the older `shot-quality-simulator.png`), styled with the `.shot` class.
 - **Web Store listing text:** `docs/store-listing.md` (title / summary / description).
 - Tests can't run on Node 24 (`ember exam`); verify via `tsc --noEmit` (only 2 known `@types` ChaiPlugin errors OK) + `ember build` + live browser.
 
