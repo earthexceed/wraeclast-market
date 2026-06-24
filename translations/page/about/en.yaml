@@ -1,6 +1,10 @@
 page:
   about:
     disclaimer: This extension is fan-made and not affiliated with Grinding Gear Games in any way.
+    whats-new:
+      title: What's new
+      description: See everything this release adds, on the What's New page.
+      button: Open What's New
     enhancers:
       title: Enabled item result enhancers
       equivalent-pricings: Equivalent pricings (powered by poe.ninja)

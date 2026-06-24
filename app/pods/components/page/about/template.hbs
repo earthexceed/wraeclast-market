@@ -1,9 +1,20 @@
 <div local-class="sections">
-  {{#if this.currentChangelog}}
-    <section local-class="section">
-      <MarkdownChangelog @markdown={{this.currentChangelog.markdown}}/>
-    </section>
-  {{/if}}
+  <section local-class="section">
+    <h1 local-class="section-title">
+      {{t "page.about.whats-new.title"}}
+    </h1>
+
+    <p local-class="section-description">
+      {{t "page.about.whats-new.description"}}
+    </p>
+
+    <Button
+      @theme="gold"
+      @icon="info-circle"
+      @onClick={{this.openChangelog}}
+      @label={{t "page.about.whats-new.button"}}
+    />
+  </section>
 
   <section local-class="section">
     <h1 local-class="section-title">
