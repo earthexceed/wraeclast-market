@@ -3,6 +3,19 @@
 All notable changes to **Wraeclast Market** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.3.0] — Mageblood Legacy effects (PoE 2)
+
+### Added
+
+- **Mageblood Legacy effects** (PoE 2) — a Mageblood's trade card only prints "Legacy of X", so
+  **hovering a Legacy** now pops a tooltip right beside it (it never covers the other mods) with
+  what it does. When the belt has the corrupted **"increased effect per duplicate"** mod, the
+  tooltip shows the maths (matching Path of Building): a small "Base +60% · +80% increased effect ="
+  line, then the result in orange ("+108% to Fire Resistance"). The multiplier applies to **every**
+  Legacy (not just the duplicated ones), and duplicate copies don't stack their value — the extra
+  copy only raises the multiplier. A duplicate-maths summary stays visible under the corrupted mod,
+  and duplicated Legacies + the active duplicate-effect mod are highlighted **green**.
+
 ## [2.2.0] — Craft of Exile export, in-place Apply, PoE 1 support & polish
 
 ### Added
@@ -20,16 +33,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   Life and Mana, Defence, Resistance, Elemental, Attribute, Physical and Chaos, Critical,
   Speed) and a quality %, and the matched mods rescale live in green. Sized to the PoE 1 cap
   (**20%**).
-- **Mageblood Legacy effects** (PoE 2) — the trade card only prints "Legacy of X", so **hovering
-  a Legacy** now pops a tooltip right beside it (so it never covers the other mods) with
-  what it does. When the belt has the corrupted **"increased effect per duplicate"** mod, the
-  tooltip shows the maths (matching Path of
-  Building): base value · +N% increased effect · = final — e.g. with 1 duplicate at +27%/dup,
-  Legacy of Granite reads "Base +2000 · +27% increased effect = +2540 to Armour". The multiplier
-  applies to **every** Legacy (not just the duplicated ones), and duplicate copies don't stack
-  their value — the extra copy only raises the multiplier. The duplicate-maths summary stays
-  visible under the mod, and duplicated Legacies + the active duplicate-effect mod are highlighted
-  green.
 
 ### Changed
 
@@ -99,6 +102,7 @@ Rebrand of Better Trading into **Wraeclast Market**, with full Path of Exile 2 s
 - **Highlight searched mods**, **regroup similar results**, **bookmarks** (folders with
   class/ascendancy + currency icons), and **pin items**.
 
+[2.3.0]: https://github.com/earthexceed/wraeclast-market
 [2.2.0]: https://github.com/earthexceed/wraeclast-market
 [2.1.0]: https://github.com/earthexceed/wraeclast-market
 [2.0.0]: https://github.com/earthexceed/wraeclast-market

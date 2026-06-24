@@ -27,6 +27,8 @@ FEATURES
 
 • Copy for Craft of Exile — one click copies a listing in Craft of Exile's import format; paste into craftofexile.com (PoE2) to load the item's base with its mods matched, ready to plan crafts.
 
+• Mageblood Legacy effects (PoE 2) — a Mageblood's card only prints "Legacy of X"; hover a Legacy to see what it actually does, with the "increased effect per duplicate" maths worked out (base → +N% increased effect → final, applied to every Legacy), matching Path of Building. Duplicated Legacies are highlighted green.
+
 • Equivalent pricing — see each listing's price converted via poe.ninja's currency-exchange rates, right on the results (PoE 1 prices shown in Divine and Chaos).
 
 • Highlight searched mods — instantly spot the mods you searched for on each result.
