@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   Speed) and a quality %, and the matched mods rescale live in green. Sized to the PoE 1 cap
   (**20%**).
 - **Mageblood Legacy effects** (PoE 2) — the trade card only prints "Legacy of X", so **hovering
-  a Legacy** now pops a tooltip beside it (in the gutter, so it never covers the other mods) with
+  a Legacy** now pops a tooltip right beside it (so it never covers the other mods) with
   what it does. When the belt has the corrupted **"increased effect per duplicate"** mod, the
   tooltip shows the maths (matching Path of
   Building): base value · +N% increased effect · = final — e.g. with 1 duplicate at +27%/dup,

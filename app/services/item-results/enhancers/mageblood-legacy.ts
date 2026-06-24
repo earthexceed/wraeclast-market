@@ -110,10 +110,23 @@ export default class MagebloodLegacy extends Service implements ItemResultsEnhan
     legacies.forEach(({mod, name}) => {
       mod.classList.add(LEGACY_CLASS);
       if (counts[name.toLowerCase()] > 1) mod.classList.add(DUP_MOD_CLASS); // green the duplicates
-      // The tooltip is a child of the mod (which is position:relative); CSS shows it on hover and
-      // parks it in the empty gutter to the RIGHT of the card, so it never covers the other mods
-      // and the mouse stays on the mod while reading it (no flicker, no layout shift).
-      mod.appendChild(this.buildLegacyTooltip(name, multiplier, increasedEffect));
+
+      const tip = this.buildLegacyTooltip(name, multiplier, increasedEffect);
+      mod.appendChild(tip);
+      // CSS shows the tooltip on hover; place it just to the RIGHT of the mod's TEXT and cap its
+      // width so it ends before the apply controls — i.e. it never reaches the price column on the
+      // far right. Computed on hover so it tracks the actual text + control positions.
+      const valueSpan = mod.querySelector<HTMLElement>('[data-field^="stat."]');
+      const textSpan = (valueSpan && valueSpan.querySelector<HTMLElement>('span')) || valueSpan;
+      mod.addEventListener('mouseenter', () => {
+        const gap = 12;
+        const modRect = mod.getBoundingClientRect();
+        const textRight = (textSpan || mod).getBoundingClientRect().right;
+        const control = mod.querySelector<HTMLElement>('.bt-apply-stat-filter');
+        const rightLimit = control ? control.getBoundingClientRect().left - 8 : modRect.right - 8;
+        tip.style.left = `${Math.round(textRight - modRect.left + gap)}px`;
+        tip.style.maxWidth = `${Math.max(180, Math.round(rightLimit - textRight - gap))}px`;
+      });
     });
 
     if (duplicateMod) {

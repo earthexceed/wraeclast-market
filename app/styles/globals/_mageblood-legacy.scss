@@ -1,6 +1,6 @@
 // Mageblood "Legacy of X" mods don't print their effect on the trade card. mageblood-legacy
-// reveals each Legacy's effect in a tooltip on hover (.bt-mb-tip), parked in the empty gutter to
-// the RIGHT of the card (so it never covers the other mods), keeps an always-visible
+// reveals each Legacy's effect in a tooltip on hover (.bt-mb-tip), placed just to the right of the
+// Legacy's text (so it never covers the other mods), keeps an always-visible
 // duplicate-maths summary under the dup mod (.bt-mb-summary), and greens the duplicated Legacies
 // (.bt-mb-dup-mod) + the active duplicate mod (.bt-mb-active-dup). The tooltip + summary are
 // excluded from Copy-for-PoB (copy-item hides them); CoE only reads the mod value spans.
@@ -15,18 +15,17 @@
   }
 }
 
-// Effect tooltip — sits to the RIGHT of the mod (in the empty gutter beside the card), vertically
-// centred on the line, fading + sliding in. Absolute + pointer-events:none, so it never shifts the
-// layout and never blocks anything; the mouse stays on the mod while reading it.
+// Effect tooltip — sits just to the RIGHT of the Legacy's text (left set per-hover by the
+// enhancer), vertically centred on the line, fading + sliding in. Absolute + pointer-events:none,
+// so it never shifts the layout and never blocks anything; the mouse stays on the mod.
 .bt-mb-tip {
   position: absolute;
   top: 50%;
-  left: 100%;
-  margin-left: 14px;
+  left: 0; // set per-hover from the mod's text right edge (see the enhancer)
   z-index: 50;
   width: max-content;
-  min-width: 210px;
-  max-width: 340px;
+  min-width: 170px;
+  max-width: 320px; // fallback; the enhancer caps it per-hover so it never reaches the price
   padding: 11px 15px 12px;
   background: linear-gradient(180deg, rgba(26, 20, 11, 0.99), rgba(10, 8, 5, 0.99));
   border: 1px solid #7a6638;
@@ -67,9 +66,8 @@
 
 .bt-mb-tip-line {
   font-size: 12.5px;
-  line-height: 1.7;
+  line-height: 1.55;
   color: #cfc6ad;
-  white-space: nowrap;
 }
 
 .bt-mb-tip-dim {
