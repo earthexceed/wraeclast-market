@@ -3,6 +3,35 @@
 All notable changes to **Wraeclast Market** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.4.0] — Roll quality %, Corrupted quick-filter & copy fixes
+
+### Added
+
+- **Roll quality %** — every rolled prefix/suffix now shows how good its roll is within the mod's
+  tier range, as a small colour-graded pill in the margin beside the item: **red = low → green =
+  high**. A corrupted **over-roll** (a value past the normal tier max) animates **rainbow**.
+  Combined desecrated affixes and item-level-scaled mods show an approximate %, and fixed mods show
+  none. Fully network-free — the tier range is read straight from the trade card.
+- **Corrupted / Twice Corrupted quick-filter** — corrupted items get a 3-state **Any / Yes / No**
+  toggle right below the red Corrupted line. Click one and the search-wide *Corrupted* (or *Twice
+  Corrupted*) filter is set and the search re-runs in place — no digging into the Miscellaneous
+  panel.
+
+### Changed
+
+- **Copy for Craft of Exile** is disabled on items carrying a "± Prefix/Suffix Modifier allowed"
+  mod, which Craft of Exile can't import yet — hovering the greyed button explains why. Copy for PoB
+  is unaffected.
+- The **quality simulator** no longer appears on corrupted rings & amulets: a corrupted item can't
+  take catalysts, so its quality is locked.
+
+### Fixed
+
+- **Copy for PoB** no longer leaks a stray "+" onto duplicated mods (e.g. a Mageblood with two of
+  the same Legacy — their combined tier label was bleeding a "+" into the mod name), and no longer
+  includes our own UI (the Quality box, the Corrupted quick-filter, the roll-quality pills) in the
+  pasted text.
+
 ## [2.3.0] — Mageblood Legacy effects (PoE 2)
 
 ### Added

@@ -23,6 +23,11 @@ const APPLY_BUTTON_SELECTOR = '.bt-apply-stat-filter-button';
 const ANVIL_ICON_PATH =
   'M256 32c-17 0-32 14-32 31 0 13 8 24 19 29l-3 40H160c-35 0-64 29-64 64v8c0 13 11 24 24 24h28l-26 64c-22 6-38 26-38 50 0 14 11 25 25 25h222c14 0 25-11 25-25 0-24-16-44-38-50l-26-64h28c13 0 24-11 24-24v-8c0-35-29-64-64-64h-80l-3-40c11-5 19-16 19-29 0-17-15-31-32-31zM119 401c-13 0-24 11-24 24v31c0 13 11 24 24 24h274c13 0 24-11 24-24v-31c0-13-11-24-24-24H119z';
 
+// Craft of Exile's importer can't represent the "± N Prefix/Suffix Modifier(s) allowed" affixes
+// (e.g. "+1 Prefix Modifier allowed", "-1 Suffix Modifier allowed" from corruption). A single one
+// is enough to disable the CoE button — copying would import a broken item.
+const UNSUPPORTED_MOD_PATTERN = /[+\-]\s*\d+\s+(?:Prefix|Suffix)\s+Modifiers?\s+allowed/i;
+
 export default class CopyCraftOfExile extends Service implements ItemResultsEnhancerService {
   @service('intl')
   intl: IntlService;
@@ -46,17 +51,23 @@ export default class CopyCraftOfExile extends Service implements ItemResultsEnha
     const bar = getCopyBar(applyButton);
     if (bar.querySelector('.bt-copy-coe-button')) return; // guard against double-enhance
 
-    bar.appendChild(this.renderCopyButton());
+    bar.appendChild(this.renderCopyButton(this.hasUnsupportedMod(itemElement)));
+  }
+
+  // True when the item carries a "± N Prefix/Suffix Modifier(s) allowed" affix, which Craft of
+  // Exile's importer can't represent — the CoE button is then shown disabled.
+  private hasUnsupportedMod(itemElement: HTMLElement): boolean {
+    const content = itemElement.querySelector('.item-popup__content') || itemElement;
+    return UNSUPPORTED_MOD_PATTERN.test(content.textContent || '');
   }
 
   clear() {
     this.resetPendingFeedback();
   }
 
-  private renderCopyButton(): HTMLButtonElement {
+  private renderCopyButton(unsupported: boolean): HTMLButtonElement {
     const button = window.document.createElement('button');
     button.classList.add('btn', 'btn-default', 'bt-copy-btn', 'bt-copy-coe-button');
-    button.dataset.tooltip = this.intl.t('item-results.copy-craft-of-exile.tooltip');
     button.appendChild(buildGameIcon(ANVIL_ICON_PATH));
 
     const label = window.document.createElement('span');
@@ -64,6 +75,16 @@ export default class CopyCraftOfExile extends Service implements ItemResultsEnha
     label.textContent = this.intl.t('item-results.copy-craft-of-exile.button');
     button.appendChild(label);
 
+    if (unsupported) {
+      // Keep it hoverable (no native `disabled`, which would suppress the CSS tooltip) but inert:
+      // a dimmed look, a not-allowed cursor, NO click handler, and a tooltip explaining why.
+      button.classList.add('bt-is-disabled');
+      button.setAttribute('aria-disabled', 'true');
+      button.dataset.tooltip = this.intl.t('item-results.copy-craft-of-exile.unsupported');
+      return button;
+    }
+
+    button.dataset.tooltip = this.intl.t('item-results.copy-craft-of-exile.tooltip');
     button.addEventListener('click', this.handleCopyClick);
 
     return button;

@@ -19,10 +19,17 @@ const COPIED_FEEDBACK_MS = 1500;
 const ITEM_POPUP_SELECTOR = '.item-popup';
 // The Apply button is rendered by the apply-stat-filter enhancer; we stack below it.
 const APPLY_BUTTON_SELECTOR = '.bt-apply-stat-filter-button';
-// Controls this extension injects into the item — excluded from the copied text so
-// "Apply"/"Copy"/min-max never leak into the PoB paste.
+// Controls this extension injects into the item — excluded from the copied text so our UI
+// ("Apply"/"Copy"/min-max, the Quality box, the corrupted quick-filter, the Mageblood tooltips +
+// summary) never leaks into the PoB paste.
 const INJECTED_SELECTOR =
-  '.bt-apply-stat-filter, .bt-apply-stat-filter-button, .bt-copy-item-button, .bt-mb-tip, .bt-mb-summary';
+  '.bt-apply-stat-filter, .bt-apply-stat-filter-button, .bt-copy-item-button, .bt-corrupted-filter, .bt-qs, .bt-rq, .bt-mb-tip, .bt-mb-summary';
+
+// Trade-site mod tier labels (the left "[1]" / "P6 [6—13]" annotations). PoB ignores them, and for
+// a DUPLICATED mod the label reads "[1] + [1]" whose visible " + " otherwise leaks a stray "+" onto
+// the mod name in the paste (e.g. "Legacy of Bismuth+"). Hidden during copy so only the mod text is
+// taken — verified network-free that this leaves every real mod value untouched.
+const TIER_LABEL_SELECTOR = '.item-mod .lc.l';
 
 // PoB-importable art categories: the path segment right after "2DItems/" in the
 // decoded icon path (e.g. "2DItems/Weapons/...", "2DItems/Jewels/..."). Excludes
@@ -136,8 +143,8 @@ export default class CopyItem extends Service implements ItemResultsEnhancerServ
     const selection = window.getSelection();
     if (!selection) return false;
 
-    const injected = Array.from(itemPopup.querySelectorAll<HTMLElement>(INJECTED_SELECTOR));
-    injected.forEach((element) => (element.style.display = 'none'));
+    const hidden = Array.from(itemPopup.querySelectorAll<HTMLElement>(`${INJECTED_SELECTOR}, ${TIER_LABEL_SELECTOR}`));
+    hidden.forEach((element) => (element.style.display = 'none'));
 
     const savedRanges: Range[] = [];
     for (let i = 0; i < selection.rangeCount; i++) {
@@ -156,7 +163,7 @@ export default class CopyItem extends Service implements ItemResultsEnhancerServ
     } finally {
       selection.removeAllRanges();
       savedRanges.forEach((savedRange) => selection.addRange(savedRange));
-      injected.forEach((element) => (element.style.display = ''));
+      hidden.forEach((element) => (element.style.display = ''));
     }
 
     return copied;

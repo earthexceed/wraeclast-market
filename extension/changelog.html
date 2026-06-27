@@ -41,13 +41,34 @@
     <img class="logo" src="logo.png" alt="Wraeclast Market logo">
     <h1>WRAECLAST MARKET</h1>
     <div class="sub">What's New</div>
-    <span class="ver">v2.3.0 · Path of Exile 1 &amp; 2</span>
+    <span class="ver">v2.4.0 · Path of Exile 1 &amp; 2</span>
   </header>
 
   <p class="intro">Thanks for updating! Here's what's new — and everything this tool adds to the Path of Exile trade site.</p>
 
   <div class="card">
-    <h2>Mageblood Legacy effects <span class="new">NEW</span></h2>
+    <h2>Roll quality % <span class="new">NEW</span></h2>
+    <p>Every rolled prefix/suffix now shows <strong>how good its roll is</strong> within the mod's tier range — a small colour-graded pill in the margin beside the item: <span style="color:#ff5b5b;font-weight:bold">red</span> = low &rarr; <span class="green">green</span> = high. A corrupted <strong>over-roll</strong> (a value past the normal tier max) animates 🌈 <strong>rainbow</strong>. Combined desecrated affixes and item-level-scaled mods show an approximate %; fixed mods show none. It's read straight from the trade card, so it costs <strong>zero</strong> extra requests.</p>
+    <img class="shot" src="shot-roll-quality.png" alt="Roll quality % pills (100%, 32%, 100%, 50%, 100%) in the margin beside each mod of a jewel — red-to-green by how high the roll is">
+  </div>
+
+  <div class="card">
+    <h2>Corrupted quick-filter <span class="new">NEW</span></h2>
+    <p>Corrupted items get a 3-state <strong>Any / Yes / No</strong> toggle right below the red Corrupted line. Click one and the search-wide <strong>Corrupted</strong> (or <strong>Twice Corrupted</strong>) filter is set and your search re-runs <strong>in place</strong> — no digging into the Miscellaneous panel.</p>
+    <img class="shot" src="shot-corrupted-filter.png" alt="An Any / Yes / No toggle below the red Corrupted line on a pair of boots">
+  </div>
+
+  <div class="card">
+    <h2>Copy fixes</h2>
+    <ul>
+      <li><strong>Copy for PoB</strong> no longer leaks a stray "+" onto duplicated mods (e.g. a Mageblood with two of the same Legacy), nor any of the extension's own UI (the Quality box, the Corrupted toggle, the roll-quality pills).</li>
+      <li><strong>Copy for CoE</strong> is greyed out on items with "± Prefix/Suffix Modifier allowed" mods, which Craft of Exile can't import yet (hover the button to see why).</li>
+      <li>The quality simulator is hidden on corrupted rings &amp; amulets — a corrupted item can't take catalysts.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Mageblood Legacy effects</h2>
     <p>A PoE 2 Mageblood's trade card only prints <strong>Legacy of X</strong>, never the effect — so <strong>hovering a Legacy</strong> pops a tooltip right beside it (it never covers the other mods) with what it does. If the belt has the corrupted <strong>"increased effect per duplicate"</strong> mod, the tooltip shows the maths (matching Path of Building): a small "Base +60% · +80% increased effect =" line, then the result in <span class="green">orange</span> ("+108% to Fire Resistance"). The multiplier applies to <strong>every</strong> Legacy (not just the duplicated ones), and duplicate copies don't stack their value — the extra copy only raises the multiplier. The duplicate-maths summary stays visible, and duplicated Legacies + the active duplicate-effect mod are highlighted <span class="green">green</span>.</p>
     <img class="shot" src="shot-mageblood.png" alt="Mageblood — hovering Legacy of Sulphur shows its effect (Base 60% · +26% increased effect = 75% increased Damage); duplicates highlighted green">
   </div>

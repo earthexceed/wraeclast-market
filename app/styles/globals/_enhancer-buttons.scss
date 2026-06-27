@@ -101,3 +101,19 @@
     opacity: 1;
   }
 }
+
+// Disabled copy button (e.g. CoE on an item with mods Craft of Exile can't import): dimmed +
+// not-allowed, with the gold hover neutralised — but still hoverable so the explanatory tooltip
+// (data-tooltip) shows. We avoid the native `disabled` attribute precisely so hover still fires.
+.btn.bt-copy-btn.bt-is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+
+  &:hover,
+  &:focus {
+    background-color: transparent;
+    border-color: #6b6147;
+    color: #c9c2a6;
+    box-shadow: none;
+  }
+}

@@ -1,0 +1,39 @@
+// Roll-quality % badge: a small black pill that floats in the dark margin to the LEFT of the item
+// card (out beyond its frame), one per rolled mod. Appended to the mod row (.item-mod,
+// position:relative) and anchored with right:100% so its right edge sits just left of the card,
+// vertically centred on the ROW so it always tracks the value text — robust whether or not the
+// "P1"/"S2" tier is shown. No ancestor clips overflow, so it can sit outside the card.
+.bt-rq {
+  position: absolute;
+  right: 100%; // place it entirely to the left of the mod row…
+  margin-right: 8px; // …with a small gap from the card edge
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 1px 6px;
+  background: rgba(0, 0, 0, 0.82);
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 1.3;
+  font-weight: bold;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  // A non-over roll's colour (red→green via HSL) is set inline on the pill text.
+}
+
+// Over-roll (> 100% of the normal tier max — only possible on corrupted items): animated rainbow
+// text. It lives in an inner span so its background-clip:text doesn't eat the pill's black bg.
+.bt-rq-over {
+  background-image: linear-gradient(90deg, #ff5b5b, #ffb142, #fff35e, #5fe06b, #4ea1ff, #b06bff, #ff5b5b);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: bt-rq-rainbow 2s linear infinite;
+}
+
+@keyframes bt-rq-rainbow {
+  to {
+    background-position: 200% center;
+  }
+}

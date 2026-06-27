@@ -9,6 +9,7 @@ import TradeLocation from 'better-trading/services/trade-location';
 
 // Utilities
 import {decodeIconCategory} from 'better-trading/utilities/icon-category';
+import {isCorrupted} from 'better-trading/utilities/corruption';
 
 export interface QualityCategory {
   key: string;
@@ -236,6 +237,9 @@ export default class QualitySimulator extends Service implements ItemResultsEnha
   enhance(itemElement: HTMLElement): void {
     const kind = jewelleryKind(itemElement);
     if (!kind) return;
+    // A corrupted ring/amulet can't take catalysts (its quality is locked), so simulating quality
+    // is meaningless — skip the box on corrupted jewellery.
+    if (isCorrupted(itemElement)) return;
     if (itemElement.querySelector(`.${BOX_CLASS}`)) return; // guard against re-injection
     const typeLine = itemElement.querySelector('.item-popup__content .item-property');
     if (!typeLine) return;

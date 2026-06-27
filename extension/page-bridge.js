@@ -1,9 +1,11 @@
 // Runs in the PAGE's main world (manifest content_scripts world: "MAIN") so it can reach the
 // trade app's Vue store, which the extension's isolated content script cannot see. It answers
-// two messages from the content script via window.postMessage:
-//   - 'get-query'  : hand back the current search query (read-only).
-//   - 'apply-stats': merge stat filters into the live search and click the trade site's own
-//                    Search button — an in-place search (one request, no full-page reload).
+// these messages from the content script via window.postMessage:
+//   - 'get-query'     : hand back the current search query (read-only).
+//   - 'apply-stats'   : merge stat filters into the live search and click the trade site's own
+//                       Search button — an in-place search (one request, no full-page reload).
+//   - 'set-corrupted' : set a corruption misc-filter (key = "corrupted" / "twice_corrupted"; Yes/No,
+//                       or remove for Any) and click Search — same in-place mechanism as apply-stats.
 // Driving the native search this way avoids POSTing our own search AND navigating to it, which
 // made the trade site re-run the search on load = two search requests per Apply (the extra one
 // could be rate-limited, blanking the results). If anything is missing it reports failure so the
@@ -71,6 +73,31 @@
     searchButton.click();
   }
 
+  // Set a corruption misc-filter and re-run the search in place. `key` is the misc_filters id
+  // ("corrupted" or "twice_corrupted"); `option` is "true" / "false", or null for "Any" (remove
+  // the filter entirely). We clone filters, mutate, then reassign the whole object back — what the
+  // Vue store reliably reacts to (same trick as applyStats' stats) — and click the native Search.
+  function setCorrupted(key, option) {
+    var persistent = getStore().state.persistent;
+
+    var filters = JSON.parse(JSON.stringify(persistent.filters || {}));
+    if (!filters.misc_filters) filters.misc_filters = {filters: {}};
+    if (!filters.misc_filters.filters) filters.misc_filters.filters = {};
+
+    if (option === null || option === undefined) {
+      delete filters.misc_filters.filters[key];
+    } else {
+      filters.misc_filters.disabled = false; // a disabled group is excluded from the search
+      filters.misc_filters.filters[key] = {option: option};
+    }
+
+    persistent.filters = filters;
+
+    var searchButton = document.querySelector('#trade .search-btn');
+    if (!searchButton) throw new Error('search button not found');
+    searchButton.click();
+  }
+
   window.addEventListener('message', function (event) {
     if (event.source !== window) return;
     var data = event.data;
@@ -87,6 +114,15 @@
         ok = false;
       }
       window.postMessage({__btBridge: 'apply-done', requestId: data.requestId, ok: ok}, '*');
+    } else if (data.__btBridge === 'set-corrupted') {
+      var corruptedOk = false;
+      try {
+        setCorrupted(data.key || 'corrupted', data.option);
+        corruptedOk = true;
+      } catch (error) {
+        corruptedOk = false;
+      }
+      window.postMessage({__btBridge: 'corrupted-done', requestId: data.requestId, ok: corruptedOk}, '*');
     }
   });
 })();

@@ -20,5 +20,13 @@ item-results:
   copy-craft-of-exile:
     button: CoE
     tooltip: Copy for Craft of Exile
+    unsupported: Craft of Exile can't import this item yet (Prefix/Suffix Modifier mods)
     copied: ✓
     error: Could not copy this item.
+  corrupted-filter:
+    label: 'Corrupted:'
+    label-twice: 'Twice Corrupted:'
+    any: Any
+    'yes': 'Yes'
+    'no': 'No'
+    error: Could not update the Corrupted filter — set it in the Miscellaneous panel instead.

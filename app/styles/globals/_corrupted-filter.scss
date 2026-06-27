@@ -1,0 +1,70 @@
+// 3-state Corrupted quick-filter, injected directly below an item's red "Corrupted" line.
+// Picking an option sets the search-wide Corrupted misc-filter (Any / Yes / No) and re-runs the
+// search in place.
+.bt-corrupted-filter {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 2px 10px 1px;
+
+  // While the in-place search is running, dim the group and ignore further clicks until the
+  // results re-render (which replaces this control).
+  &.bt-corrupted-filter-busy {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+}
+
+.bt-corrupted-filter-label {
+  color: #c06565; // muted red, echoing the Corrupted line above
+  font-size: 11px;
+  letter-spacing: 0.3px;
+}
+
+// The three options form a single connected segmented control: no gaps, shared borders collapsed,
+// only the outer corners rounded.
+.bt-corrupted-filter-options {
+  display: inline-flex;
+}
+
+.bt-corrupted-filter-option {
+  position: relative; // so the active/hover border sits above its neighbours' (see z-index)
+  box-sizing: border-box;
+  height: 19px;
+  min-width: 30px;
+  padding: 0 8px;
+  color: #c9c2a6;
+  background-color: #15170f;
+  border: 1px solid #6b6147;
+  font-size: 10.5px;
+  line-height: 17px;
+  cursor: pointer;
+
+  & + & {
+    margin-left: -1px; // collapse the shared border so the three read as one control
+  }
+
+  &:first-child {
+    border-radius: 3px 0 0 3px;
+  }
+
+  &:last-child {
+    border-radius: 0 3px 3px 0;
+  }
+
+  &:hover {
+    border-color: #e8c873;
+    color: #e8d9a0;
+    z-index: 1;
+  }
+
+  &.bt-corrupted-filter-on {
+    color: #1a1505;
+    background-color: #e8c873;
+    border-color: #e8c873;
+    font-weight: bold;
+    z-index: 2; // keep the full highlighted border above both neighbours
+  }
+}
